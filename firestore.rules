@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pravila definiraju pristup za sve kolekcije u Vašoj bazi podataka.
+    
+    // --- JAVNI PODACI (za dijeljenje i opću upotrebu) ---
+    // Mijenjajte samo kolekcije nakon 'data/'.
+    match /artifacts/{appId}/public/data/{collection}/{document} {
+      allow read; // Svatko (anoniman ili prijavljen) može čitati javne podatke.
+      allow write: if request.auth != null; // Samo prijavljeni korisnici mogu pisati.
+    }
+
+    // --- PRIVATNI PODACI KORISNIKA (Za spremanje osobnih proračuna) ---
+    // Korisnik može čitati i pisati samo u svoj privatni prostor.
+    match /artifacts/{appId}/users/{userId}/{collection}/{document} {
+      // Dopušta čitanje i pisanje ako je UID korisnika jednak 'userId' u putanji dokumenta.
+      allow read, write: if request.auth.uid == userId;
+    }
+  }
+}
