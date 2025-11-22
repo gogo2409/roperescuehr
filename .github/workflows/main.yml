@@ -14,7 +14,7 @@ jobs:
   build_and_deploy:
     # Pokreni ovaj posao na najnovijem Ubuntu operativnom sustavu
     runs-on: ubuntu-latest
-
+    
     # Koraci izvršavanja
     steps:
       - name: 1. Checkout Koda
@@ -25,30 +25,13 @@ jobs:
         # Potrebno za npm i Firebase CLI
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20' # Preporučena LTS verzija
 
-      - name: 3. Instaliraj Firebase CLI i Ovisnosti
-        # Instaliraj globalno Firebase CLI (i npm ovisnosti ako ih imate)
-        run: |
-          npm install -g firebase-tools
-          # Ako imate package.json, odkomentirajte: npm install
+      - name: 3. Instaliraj Firebase CLI
+        # Instaliraj globalno Firebase CLI
+        run: npm install -g firebase-tools
           
       - name: 4. Deploy na Firebase Hosting
         # Koristi Firebase CLI naredbu za postavljanje
-        # Koristimo token koji ste spremili kao tajnu (Secret) na GitHubu!
+        # Koristimo token koji je sigurno pohranjen kao tajna (Secret)
         run: firebase deploy --only hosting --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
-        env:
-          # Ovdje se definira okruženje ako je potrebno
-          FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
-
-
-
-### Završna provjera:
-
-1.  Jeste li stvorili `main.yml` na putanji **`.github/workflows/main.yml`**?
-2.  Jesu li sve konfiguracijske datoteke (`.firebaserc`, `firebase.json`, `*.rules`) u korijenu?
-3.  Jesu li svi HTML i JS fajlovi u mapi `public`?
-
-Ako je odgovor na sva pitanja "Da", sada morate **Commitati i Pushati** sve te nove datoteke na GitHub. Čim se `main.yml` datoteka pojavi na Vašoj `main` grani na GitHubu, *automatski će se pokrenuti* prvi deployment!
-
-**Javite mi kada sve gurnete (pushate) na GitHub!**
