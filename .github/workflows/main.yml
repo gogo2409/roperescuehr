@@ -1,37 +1,35 @@
-# Naziv toka posla (Workflow)
 name: Deploy Web Aplikacije na Firebase Hosting
 
-# Okidači: Pokreni se kada se kod gurne na glavnu granu
 on:
   push:
     branches:
       - main
-  # Omogući ručno pokretanje iz GitHub Actions sučelja
-  workflow_dispatch:
 
-# Poslovi (Jobs) koje treba izvršiti
 jobs:
   build_and_deploy:
-    # Pokreni ovaj posao na najnovijem Ubuntu operativnom sustavu
     runs-on: ubuntu-latest
-    
-    # Koraci izvršavanja
     steps:
-      - name: 1. Checkout Koda
-        # Dohvati kod iz repozitorija
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: 2. Postavi Node.js Okruženje
-        # Potrebno za npm i Firebase CLI
+      - name: 1. Setup Node.js (v18.x)
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Preporučena LTS verzija
+          node-version: '18.x'
 
-      - name: 3. Instaliraj Firebase CLI
-        # Instaliraj globalno Firebase CLI
+      - name: 2. Instalacija ovisnosti
+        run: npm install
+
+      - name: 3. Izgradnja aplikacije (Build)
+        # Prilagodite ovu liniju ako Vaša build komanda nije 'npm run build'
+        run: npm run build
+
+      - name: Instalacija Firebase CLI
         run: npm install -g firebase-tools
-          
+
       - name: 4. Deploy na Firebase Hosting
-        # Koristi Firebase CLI naredbu za postavljanje
-        # Koristimo token koji je sigurno pohranjen kao tajna (Secret)
-        run: firebase deploy --only hosting --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
+        # AŽURIRANA LINIJA: Dodan je --project argument
+        # ZAMJENITE 'VLASTITI-FIREBASE-PROJECT-ID' sa stvarnim ID-jem Vašeg projekta
+        run: firebase deploy --only hosting --project VLASTITI-FIREBASE-PROJECT-ID --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
+
+      - name: Završetak Deploya
+        run: echo "Deploy Complete!"
