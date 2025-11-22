@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Ova pravila definiraju pristup svim datotekama u bucketu.
+    
+    match /{allPaths=**} {
+      // Svi korisnici (anonimni ili prijavljeni) mogu čitati sve datoteke.
+      allow read;
+      
+      // Samo prijavljeni korisnici mogu pisati datoteke.
+      allow write: if request.auth != null;
+    }
+  }
+}
