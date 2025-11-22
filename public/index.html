@@ -3,29 +3,288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RopeRescueHR - Početak</title>
+    <title>RopeRescueHR - Proračun Sila</title>
+    <!-- Učitavanje Tailwind CSS-a za brz stil -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        /* Učitavanje Google Fonta: Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f7f9fc;
         }
+        /* Osnovno stiliziranje kartice */
+        .calculator-card {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        /* Stil za gumbe */
+        .btn-primary {
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.5);
+        }
     </style>
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
-    <!-- Glavni kontejner -->
-    <div class="bg-white p-8 rounded-xl shadow-2xl max-w-lg w-full text-center">
-        <h1 class="text-4xl font-extrabold text-blue-700 mb-4">
+    <!-- Glavni kontejner i kartica za aplikaciju -->
+    <div class="calculator-card max-w-xl w-full">
+        <h1 class="text-3xl font-extrabold text-blue-700 mb-4 text-center border-b pb-2">
             RopeRescueHR
         </h1>
-        <p class="text-xl font-medium text-gray-700 mb-6">
-            Aplikacija za proračun je uspješno inicijalizirana.
+        <p class="text-lg text-gray-600 mb-6 text-center">
+            Proračun opterećenja za sustave spašavanja užetom.
         </p>
-        <div class="p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-md inline-block">
-            <p class="font-semibold">Sljedeći korak:</p>
-            <p>Implementacija CI/CD-a za automatsko postavljanje (deployment).</p>
+
+        <!-- Sekcija za unos podataka -->
+        <div id="input-section" class="space-y-4">
+            <!-- Unos Težine Tereta -->
+            <div>
+                <label for="loadWeight" class="block text-sm font-medium text-gray-700">Težina tereta (kg)</label>
+                <input type="number" id="loadWeight" value="100" min="1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-blue-500 focus:ring-blue-500" placeholder="Unesite težinu u kg">
+            </div>
+
+            <!-- Odabir Sustava -->
+            <div>
+                <label for="systemRatio" class="block text-sm font-medium text-gray-700">Omjer Sustava (mehanička prednost)</label>
+                <select id="systemRatio" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-3 border focus:border-blue-500 focus:ring-blue-500">
+                    <option value="3">3:1 (Jednostavan Z-rig)</option>
+                    <option value="5">5:1</option>
+                    <option value="6">6:1</option>
+                    <option value="1">1:1 (Direktno podizanje/spuštanje)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Gumb za Proračun -->
+        <button onclick="calculateForces()" class="btn-primary w-full bg-blue-600 text-white p-3 mt-8 rounded-lg font-semibold shadow-lg hover:bg-blue-700">
+            Izračunaj Opterećenja
+        </button>
+
+        <!-- Sekcija za Rezultate -->
+        <div id="results-section" class="mt-8 border-t pt-4 hidden">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Rezultati Proračuna</h2>
+
+            <!-- Opterećenje na Sidrište -->
+            <div class="flex justify-between items-center p-3 bg-gray-100 rounded-md mb-2">
+                <span class="font-medium text-gray-700">Sila na Sidrište (kN):</span>
+                <span id="anchor-force" class="font-bold text-red-600 text-xl"></span>
+            </div>
+
+            <!-- Sila Potrebna za Podizanje -->
+            <div class="flex justify-between items-center p-3 bg-green-100 rounded-md mb-2">
+                <span class="font-medium text-gray-700">Potrebna Sila za Podizanje (kN):</span>
+                <span id="pull-force" class="font-bold text-green-700 text-xl"></span>
+            </div>
+
+            <!-- Poruka o statusu (Upozorenje) -->
+            <div id="status-message" class="mt-4 p-3 rounded-md font-semibold text-center"></div>
+        </div>
+        
+        <!-- Prikaz UserId-a za Firebase -->
+        <div class="mt-6 text-xs text-gray-400 border-t pt-2 text-center">
+            Status korisnika (za Firebase): <span id="user-id">Povezivanje...</span>
         </div>
     </div>
+
+    <!-- JavaScript Logika Aplikacije i Firebase Integracija -->
+    <script type="module">
+        // Import Firebase modula
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Uključi debug logiranje za Firebase
+        setLogLevel('debug');
+
+        // Globalne varijable iz Canvas okruženja
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db;
+        let auth;
+        let userId = 'Anonimni';
+
+        /**
+         * Inicijalizacija Firebasea i Autentifikacija
+         */
+        const initFirebase = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Autentifikacija korisnika
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Praćenje promjena stanja autentifikacije
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        document.getElementById('user-id').textContent = userId;
+                        // Učitaj posljednji proračun nakon uspješne prijave
+                        loadLatestCalculation();
+                    } else {
+                        userId = 'Anonimni (Nije Prijavljen)';
+                        document.getElementById('user-id').textContent = userId;
+                    }
+                });
+
+            } catch (error) {
+                console.error("Greška pri inicijalizaciji Firebasea ili autentifikaciji:", error);
+                document.getElementById('user-id').textContent = `Greška: ${error.message}`;
+            }
+        };
+
+        // Pokreni Firebase inicijalizaciju
+        window.onload = initFirebase;
+
+        /**
+         * Glavna funkcija za proračun sila u sustavima užetom
+         */
+        window.calculateForces = () => {
+            const loadWeightKg = parseFloat(document.getElementById('loadWeight').value);
+            const ratio = parseInt(document.getElementById('systemRatio').value);
+            const resultsSection = document.getElementById('results-section');
+            const statusMessage = document.getElementById('status-message');
+
+            if (isNaN(loadWeightKg) || loadWeightKg <= 0) {
+                statusMessage.textContent = 'Molimo unesite validnu težinu tereta.';
+                statusMessage.className = 'mt-4 p-3 rounded-md font-semibold text-center bg-red-100 text-red-700';
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            // --- FIZIKALNE KONSTANTE I PRETPOSTAVKE ---
+            const gravity = 9.81; // m/s^2
+            const kNPerKg = gravity / 1000; // Konverzija iz kg u kN (1kg ~ 0.00981 kN)
+            
+            // Pretpostavka trenja (Faktor učinkovitosti po koloturu):
+            // 0.8 (80%) je uobičajeno za lošije/starije koloture
+            // 0.9 (90%) je uobičajeno za moderne, zatvorene koloture
+            const efficiency = 0.85; // Koristimo 85% kao umjerenu vrijednost
+            
+            // Stvarna sila gravitacije (kN) koja djeluje na teret
+            const forceOfLoadkN = loadWeightKg * kNPerKg;
+
+            // 1. Potrebna sila za podizanje (Pull Force)
+            let pullForcekN;
+            if (ratio === 1) {
+                // Kod 1:1 sustava, sila je veća od opterećenja zbog trenja u opremi
+                pullForcekN = forceOfLoadkN / efficiency; 
+            } else {
+                // Sila = Teret / (Omjer * Učinkovitost Sustava)
+                // Učinkovitost sustava (E_sys) se računa kao Efikasnost^Broj_Kolotura.
+                // U ovom pojednostavljenom modelu, koristimo omjer kao osnovu:
+                const systemEfficiency = Math.pow(efficiency, ratio);
+                pullForcekN = forceOfLoadkN / (ratio * systemEfficiency);
+            }
+            
+            // 2. Opterećenje na Sidrište (Anchor Force)
+            // U najjednostavnijem slučaju (podizanje), sidrište drži teret i silu povlačenja.
+            // Formula je pojednostavljena za osnovne sustave: Sila_Sidrišta = Sila_Tereta + Sila_Povlačenja
+            const anchorForcekN = forceOfLoadkN + pullForcekN; 
+            
+            // Formatiranje rezultata
+            const pullForceDisplay = pullForcekN.toFixed(2) + ' kN';
+            const anchorForceDisplay = anchorForcekN.toFixed(2) + ' kN';
+
+            // Prikaz rezultata na UI
+            document.getElementById('pull-force').textContent = pullForceDisplay;
+            document.getElementById('anchor-force').textContent = anchorForceDisplay;
+            
+            // Prikaz statusa i upozorenja (npr. ako je sila sidrišta veća od 15 kN)
+            let statusText = `Proračun za ${ratio}:1 sustav uspješan.`;
+            statusMessage.className = 'mt-4 p-3 rounded-md font-semibold text-center bg-blue-100 text-blue-700';
+            
+            if (anchorForcekN > 15) {
+                statusText += ' <br>**PAŽNJA:** Opterećenje na sidrište je visoko (>15 kN). Provjerite svoju opremu!';
+                statusMessage.className = 'mt-4 p-3 rounded-md font-semibold text-center bg-red-200 text-red-800';
+            }
+
+            statusMessage.innerHTML = statusText;
+            resultsSection.classList.remove('hidden');
+
+            // Spremi rezultate u Firestore ako je korisnik prijavljen
+            saveCalculation({
+                timestamp: new Date().toISOString(),
+                loadWeight: loadWeightKg,
+                systemRatio: ratio,
+                pullForcekN: pullForcekN,
+                anchorForcekN: anchorForcekN
+            });
+        };
+
+        /**
+         * Funkcija za spremanje proračuna u Firestore bazu
+         */
+        const saveCalculation = async (data) => {
+            if (!db || !userId || userId === 'Anonimni' || userId === 'Povezivanje...') {
+                console.warn("Korisnik nije prijavljen ili Firebase nije spreman. Proračun nije spremljen.");
+                return;
+            }
+
+            try {
+                // Stvori referencu na privatnu kolekciju korisnika (prema firestore.rules)
+                const docRef = doc(db, 
+                    'artifacts', appId, 
+                    'users', userId, 
+                    'calculations', 
+                    Date.now().toString() // Koristi timestamp kao jedinstveni ID dokumenta
+                );
+
+                await setDoc(docRef, data);
+                console.log("Proračun uspješno spremljen u Firestore.");
+            } catch (e) {
+                console.error("Greška pri spremanju u Firestore: ", e);
+            }
+        };
+        
+        /**
+         * Funkcija za učitavanje posljednjeg proračuna iz Firestore baze
+         */
+        const loadLatestCalculation = async () => {
+             if (!db || !userId || userId === 'Anonimni' || userId === 'Povezivanje...') return;
+
+             try {
+                // Stvori referencu na kolekciju
+                const q = query(
+                    collection(db, 'artifacts', appId, 'users', userId, 'calculations'),
+                    // NE koristimo orderBy radi izbjegavanja problema s indeksima, već klijentsko sortiranje
+                );
+                
+                const querySnapshot = await getDocs(q);
+                let latestData = null;
+
+                // Pronađi najnoviji dokument klijentski (po timestampu)
+                querySnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    if (!latestData || data.timestamp > latestData.timestamp) {
+                         latestData = data;
+                    }
+                });
+
+                if (latestData) {
+                    document.getElementById('loadWeight').value = latestData.loadWeight;
+                    document.getElementById('systemRatio').value = latestData.systemRatio;
+                    // Automatski izračunaj sa starim podacima
+                    calculateForces(); 
+                    console.log("Učitana posljednja kalkulacija.");
+                }
+             } catch (e) {
+                 console.error("Greška pri učitavanju iz Firestore: ", e);
+             }
+        };
+    </script>
 </body>
 </html>
