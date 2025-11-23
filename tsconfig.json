@@ -1,43 +1,64 @@
 {
   "compilerOptions": {
+    // Definira ciljanu verziju JavaScripta za kompilaciju
     "target": "es2020",
+    // Uključuje biblioteke za DOM i ESNext značajke
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
     ],
+    // Omogućuje kompilaciju JavaScript datoteka
     "allowJs": true,
+    // Preskače provjeru tipova za datoteke iz node_modules (za bržu kompilaciju)
     "skipLibCheck": true,
+    // Omogućuje strogi način provjere tipova (preporučeno za robustan kod)
     "strict": true,
+    // Osigurava dosljednost u imenima datoteka i mapa (case sensitivity)
     "forceConsistentCasingInFileNames": true,
+    // Ne generira JavaScript izlazne datoteke (Next.js to radi sam)
     "noEmit": true,
+    // Omogućuje interopabilnost s CommonJS modulima
     "esModuleInterop": true,
+    // Definira sustav modula na 'esnext' (standard za moderne JS aplikacije)
     "module": "esnext",
+    // Definira strategiju rješavanja modula
     "moduleResolution": "node",
+    // Omogućuje uvoz JSON datoteka kao modula
     "resolveJsonModule": true,
+    // Osigurava da se svaki modul tretira kao zasebna cjelina
     "isolatedModules": true,
-    "jsx": "preserve",
+    // Postavlja JSX sintaksu na 'react-jsx' (za React 17+ JSX transformaciju)
+    "jsx": "react-jsx",
+    // Omogućuje inkrementalnu kompilaciju za brže rebuildove
     "incremental": true,
+    // Dodaje Next.js TypeScript plugin
     "plugins": [
       {
         "name": "next"
       }
     ],
+    // Postavlja baznu URL za rješavanje modula
     "baseUrl": ".",
+    // Definira alias putanje za uvoze
+    // '@/*' mapira na korijen projekta './*', tako da npr. '@/lib/auth' postaje 'lib/auth'
     "paths": {
       "@/*": [
         "./*"
-      ] // OVO DEFINIRA DA ALIAS @/ RADI IZ KORIJENA
+      ]
     }
   },
+  // Uključuje datoteke koje treba kompilati
   "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    "next-env.d.ts",       // Next.js okolišne deklaracije
+    "**/*.ts",             // Sve TypeScript datoteke
+    "**/*.tsx",            // Sve TypeScript React datoteke
+    ".next/types/**/*.ts", // Next.js generirane tipove
+    ".next/dev/types/**/*.ts", // Next.js generirane tipove za razvoj
+    "types/**/*.ts"        // <-- OVO JE KRITIČNO! Uključuje sve .ts datoteke iz 'types' foldera, poput global.d.ts
   ],
+  // Isključuje datoteke iz kompilacije
   "exclude": [
-    "node_modules"
+    "node_modules" // Ne kompiliraj datoteke iz node_modules
   ]
 }
