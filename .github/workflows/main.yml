@@ -1,9 +1,9 @@
-name: Deploy Web Aplikacije na Firebase Hosting
+name: Deploy Web Aplikacije na Firebase Hosting v2
 
 on:
   push:
     branches:
-      - master # <--- PROMIJENI OVO IZ 'main' U 'master'
+      - master # <-- OVO JE KRITIČNO! MORA BITI 'master'
 
 jobs:
   build_and_deploy:
@@ -27,7 +27,6 @@ jobs:
 
       - name: 4. Deploy na Firebase Hosting
         run: firebase deploy --only hosting --project roperescuehr --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
-        # ^^^ Također sam zamijenio 'VLASTITI-FIREBASE-PROJECT-ID' sa stvarnim ID-jem tvog projekta: roperescuehr
 
       - name: Završetak Deploya
         run: echo "Deploy Complete!"
