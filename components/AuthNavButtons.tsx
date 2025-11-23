@@ -40,10 +40,17 @@ const mapFirebaseError = (code: string) => {
 };
 
 // Jednostavni gumb
-const Button = ({ children, onClick, className = "", disabled = false, type = "button" }: { children: React.ReactNode, onClick: () => void, className?: string, disabled?: boolean, type?: "button" | "submit" }) => (
+// === IZMIJENJENO: onClick prop je sada OPCIONALAN (onClick?: () => void) ===
+const Button = ({ children, onClick, className = "", disabled = false, type = "button" }: { 
+    children: React.ReactNode, 
+    onClick?: () => void, // <-- Ovdje je promjena!
+    className?: string, 
+    disabled?: boolean, 
+    type?: "button" | "submit" 
+}) => (
     <button
         type={type}
-        onClick={onClick}
+        onClick={onClick} 
         disabled={disabled}
         className={`flex items-center justify-center px-4 py-2 font-medium text-white transition-all duration-200 rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-opacity-50 
             ${disabled ? 'bg-gray-400 cursor-not-allowed' : `${className} hover:shadow-lg hover:brightness-110 focus:ring-indigo-500`}`}
@@ -69,7 +76,7 @@ const FormModal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onCl
 };
 
 // Registration Modal - prima 'auth' prop, ali mi ćemo ga proslijediti iz glavne komponente
-const RegistrationModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () => void, auth: any }) => { // 'auth' je ovdje bilo `Auth`
+const RegistrationModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () => void, auth: any }) => { 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState<any>(null);
@@ -86,7 +93,7 @@ const RegistrationModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) { // Provjera je i dalje dobra
+        if (!auth) { 
             setMessage({ type: 'error', text: 'Autentifikacija nije dostupna.' });
             return;
         }
@@ -139,7 +146,7 @@ const RegistrationModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose
 };
 
 // Login Modal - prima 'auth' prop, ali mi ćemo ga proslijediti iz glavne komponente
-const LoginModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () => void, auth: any }) => { // 'auth' je ovdje bilo `Auth`
+const LoginModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () => void, auth: any }) => { 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState<any>(null);
@@ -156,7 +163,7 @@ const LoginModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () =>
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) { // Provjera je i dalje dobra
+        if (!auth) { 
             setMessage({ type: 'error', text: 'Autentifikacija nije dostupna.' });
             return;
         }
@@ -235,11 +242,11 @@ export default function AuthNavButtons({ initialAuthToken }: AuthNavButtonsProps
 
         // Anonimna prijava ako nema korisnika
         // === KORISTIMO DIREKTNO IMPORTANI firebaseAuth ===
-        // Provjeri je li anonimna prijava još uvijek željena
-        if (!firebaseAuth.currentUser && !user) { // Dodana provjera `!user` da se izbjegne ponovno prijavljivanje nakon odjave
+        // Dodana provjera `!user` da se izbjegne ponovno prijavljivanje nakon odjave
+        // i spriječi greška ako je `currentUser` inicijalno null, ali je prijava u tijeku.
+        if (!firebaseAuth.currentUser && !user) {
             signInAnonymously(firebaseAuth).catch(err => console.error("Anonimna prijava neuspjela:", err));
         }
-
 
         return () => unsubscribe();
     }, []); // === VAŽNO: Dependency array je sada prazan ili sadrži samo `initialAuthToken` ako ga koristiš na neki način ===
@@ -265,7 +272,7 @@ export default function AuthNavButtons({ initialAuthToken }: AuthNavButtonsProps
             {user && !user.isAnonymous ? (
                 <>
                     <div className="text-sm font-semibold text-gray-700 max-w-xs truncate md:max-w-md lg:max-w-lg">
-                        Prijavljen/a kao: <span className="text-indigo-600">{userId}</span>
+                        Prijavljen/a kao: <span className="text-indigo-600">{user.email || userId}</span> {/* Koristimo email ako postoji */}
                     </div>
                     <Button onClick={handleSignOut} className="bg-red-600 hover:bg-red-700">
                         <LogOut className="h-5 w-5 mr-2" /> Odjava
