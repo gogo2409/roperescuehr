@@ -1,14 +1,15 @@
 // app/modul/page.tsx
 
-import React from 'react';
-// Uvjerite se da je putanja ispravna, ovdje pretpostavljam da je to putanja u projektu:
+import React, { Suspense } from 'react'; // Dodaj Suspense
 import ModuleContentFetcher from '../../components/ModuleContentFetcher';
 
-// Glavna stranica je Server Komponenta
+// Glavna stranica je Server Komponenta, ali wrappa klijentsku unutar Suspense
 const ModulePage: React.FC = () => {
-  return (
-    <ModuleContentFetcher />
-  );
+  return (
+    <Suspense fallback={<div>Učitavanje modula...</div>}>
+      <ModuleContentFetcher />
+    </Suspense>
+  );
 };
 
 export default ModulePage;

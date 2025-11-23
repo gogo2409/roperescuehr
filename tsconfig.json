@@ -29,7 +29,7 @@
     // Osigurava da se svaki modul tretira kao zasebna cjelina, pomaže pri izbjegavanju globalnih konflikata
     "isolatedModules": true,
     // Postavlja JSX sintaksu na 'react-jsx' (potrebno za React 17+ JSX transformaciju)
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     // Omogućuje inkrementalnu kompilaciju za brže rebuildove tijekom razvoja
     "incremental": true,
     // Dodaje Next.js TypeScript plugin za poboljšanu integraciju
@@ -50,13 +50,13 @@
   },
   // 'include' polje specificira koje datoteke TypeScript kompajler treba uključiti u kompilaciju
   "include": [
-    "next-env.d.ts",        // Deklaracije okruženja specifične za Next.js
-    "**/*.ts",              // Sve .ts datoteke u projektu
-    "**/*.tsx",             // Sve .tsx datoteke u projektu
-    ".next/types/**/*.ts",  // TypeScript datoteke generirane od strane Next.js-a
+    "next-env.d.ts", // Deklaracije okruženja specifične za Next.js
+    "**/*.ts", // Sve .ts datoteke u projektu
+    "**/*.tsx", // Sve .tsx datoteke u projektu
+    ".next/types/**/*.ts", // TypeScript datoteke generirane od strane Next.js-a
     ".next/dev/types/**/*.ts", // TypeScript datoteke generirane od strane Next.js-a za razvoj
-    "types/**/*.ts"         // <-- OVO JE KLJUČNO! Uključuje sve .ts datoteke unutar 'types' foldera,
-                            // gdje očekujemo da se nalazi tvoj 'global.d.ts'
+    "types/**/*.ts" // <-- OVO JE KLJUČNO! Uključuje sve .ts datoteke unutar 'types' foldera,
+    // gdje očekujemo da se nalazi tvoj 'global.d.ts'
   ],
   // 'exclude' polje specificira koje datoteke TypeScript kompajler treba ignorirati
   "exclude": [

@@ -1,5 +1,5 @@
 // components/ModuleContentFetcher.tsx
-'use client';
+'use client'; // <-- KRITIČNA LINIJA: Pretvara ovu komponentu u klijentsku
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
