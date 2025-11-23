@@ -25,9 +25,22 @@ jobs:
       - name: Instalacija Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: 4. Deploy na Firebase Hosting
-        # Ažurirano: Pojednostavljena komanda, firebase.json sada definira 'site'
-        run: firebase deploy --only hosting --project roperescuehr --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
+      # NOVI KORAK: Spremi ključ servisnog računa u privremenu datoteku i postavi GOOGLE_APPLICATION_CREDENTIALS
+      - name: 4. Konfiguracija Servisnog Računa za Firebase CLI
+        env:
+          SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
+        run: |
+          echo "${SERVICE_ACCOUNT_KEY}" > firebase-service-account-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=${PWD}/firebase-service-account-key.json" >> $GITHUB_ENV
+
+      # NOVI KORAK: Omogući podršku za web frameworke
+      - name: 5. Omogući Web Frameworks Experiment
+        run: firebase experiments:enable webframeworks
+
+      - name: 6. Deploy na Firebase Hosting
+        # Ažurirano: Uklonjen --token, Firebase CLI sada koristi GOOGLE_APPLICATION_CREDENTIALS
+        run: firebase deploy --only hosting --project roperescuehr
+        # Ovdje NEMA --token argumenta. Autentifikacija se vrši putem GOOGLE_APPLICATION_CREDENTIALS
 
       - name: Završetak Deploya
         run: echo "Deploy Complete!"
