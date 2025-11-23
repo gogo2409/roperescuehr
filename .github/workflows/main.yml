@@ -26,7 +26,6 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: 4. Deploy na Firebase Hosting
-        run: firebase deploy --only hosting:default-site --project roperescuehr --site roperescuehr --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
-        #                          ^^^^^^^^^^^^^^^^^^^         ^^^^^^^^^^^^^^^ <-- NOVO: Dodaj --site PROJECT_ID
-      - name: Završetak Deploya
+        run: firebase deploy --only hosting --project roperescuehr --token ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
+        #                      ^^^^^^^^^^^^^^ <-- Pojednostavljeno! Bez --site ili :target_name
         run: echo "Deploy Complete!"

@@ -1,7 +1,7 @@
 {
   "hosting": [
-    { // <-- Ovdje koristimo array za hosting konfiguraciju
-      "target": "default-site", // <-- NOVO: Definiramo jedinstveni target za ovaj site
+    { // Koristimo array za hosting konfiguraciju
+      "site": "roperescuehr", // <-- OVDJE DEFINIRAMO TAČAN SITE ID!
       "public": "out", // Next.js će generirati statične datoteke u 'out' folder
       "ignore": [
         "firebase.json",
