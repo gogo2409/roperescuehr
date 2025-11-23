@@ -1,16 +1,20 @@
 {
   "hosting": {
-    "public": "y",
+    "public": ".next/static", // Firebase će posluživati statičke assete iz .next/static
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
+    // Ovo je za povezivanje s Cloud Functions za server-side rendering
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "destination": "/index.html" // Ili putanja do tvoje glavne serverless funkcije, često /__nextjs_server__
       }
-    ]
+    ],
+    "frameworksBackend": {
+      "region": "europe-west3" // Koristi regiju gdje ti je Firestore
+    }
   }
 }

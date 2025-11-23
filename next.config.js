@@ -1,20 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ... ostala konfiguracija (ako postoji)
-  
   images: {
-    // Ovo govori Next.js-u da dopusti učitavanje slika s ove adrese.
     remotePatterns: [
       {
         protocol: 'http',
-        hostname: 'localhost',
-        port: '1337', 
-        pathname: '/uploads/**', // Važan dio Strapi putanje
+        hostname: 'localhost', // Oprez: 'localhost' neće raditi u produkciji. Mora biti pravi Strapi host.
+        port: '1337',
+        pathname: '/uploads/**',
       },
+      // Dodajte svoju produkcijsku Strapi domenu ovdje kada bude spremna!
+      // {
+      //   protocol: 'https',
+      //   hostname: 'your-strapi-prod-domain.com',
+      //   port: '', // Obično prazno za HTTPS
+      //   pathname: '/uploads/**',
+      // },
     ],
   },
   
-  // ...
+  // OVO JE KRITIČNO za SSR sa Firebase Functions
+  output: 'standalone', 
 };
 
 module.exports = nextConfig;
