@@ -1,20 +1,24 @@
 {
   "hosting": {
-    "public": ".next/static", // Firebase će posluživati statičke assete iz .next/static
+    "public": "out", // Next.js će generirati statične datoteke u 'out' folder
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
-    // Ovo je za povezivanje s Cloud Functions za server-side rendering
-    "rewrites": [
+    // NEMA "rewrites" niti "frameworksBackend" za jednostavni statični hosting
+    // Time osiguravamo da se ne miješaju s defaultnim siteom
+    "headers": [
       {
         "source": "**",
-        "destination": "/index.html" // Ili putanja do tvoje glavne serverless funkcije, često /__nextjs_server__
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=3600"
+          }
+        ]
       }
-    ],
-    "frameworksBackend": {
-      "region": "europe-west3" // Koristi regiju gdje ti je Firestore
-    }
+    ]
   }
+  // Nema drugih sekcija kao što su "functions", "firestore", itd.
 }

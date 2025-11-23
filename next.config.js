@@ -17,9 +17,9 @@ const nextConfig = {
       // },
     ],
   },
-  
-  // OVO JE KRITIČNO za SSR sa Firebase Functions
-  output: 'standalone', 
+
+  // OVO JE KRITIČNO za statični export za Firebase Hosting
+  output: 'export',
 };
 
 module.exports = nextConfig;
