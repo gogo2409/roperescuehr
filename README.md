@@ -1,4 +1,4 @@
-RopeRescueHR - Proračun Sila u Sustavima za Spašavanje Užetom
+RopeRescueHR - Proračun Sila u Sustavima za Spašavanje Užetom.
 
 O Projektu
 
