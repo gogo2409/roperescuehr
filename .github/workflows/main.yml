@@ -3,7 +3,7 @@ name: Deploy Web Aplikacije na Firebase Hosting
 on:
   push:
     branches:
-      - master # <--- PROMIJENI OVO IZ 'main' U 'master'
+      - master # <--- PROMIJENI OVO IZ 'main' U 'master!'
 
 jobs:
   build_and_deploy:
