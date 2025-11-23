@@ -1,24 +1,24 @@
 {
-  "hosting": {
-    "public": "out", // Next.js će generirati statične datoteke u 'out' folder
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    // NEMA "rewrites" niti "frameworksBackend" za jednostavni statični hosting
-    // Time osiguravamo da se ne miješaju s defaultnim siteom
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          {
-            "key": "Cache-Control",
-            "value": "public, max-age=3600"
-          }
-        ]
-      }
-    ]
-  }
-  // Nema drugih sekcija kao što su "functions", "firestore", itd.
+  "hosting": [
+    { // <-- Ovdje koristimo array za hosting konfiguraciju
+      "target": "default-site", // <-- NOVO: Definiramo jedinstveni target za ovaj site
+      "public": "out", // Next.js će generirati statične datoteke u 'out' folder
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "public, max-age=3600"
+            }
+          ]
+        }
+      ]
+    }
+  ]
 }
