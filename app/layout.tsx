@@ -12,6 +12,9 @@ import { faHome } from '@fortawesome/free-solid-svg-icons';
 // Ovu komponentu ZADRŽAVAMO: Ona sada obrađuje PRIJAVU, REGISTRACIJU, PROFIL i ODJAVU
 import AuthNavButtons from '../components/AuthNavButtons'; 
 
+// DODAJ OVO: Uvozimo Firebase Auth instancu i inicijalni auth token
+import { firebaseAuth, firebaseInitialAuthToken } from '@/lib/firebase'; 
+
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -53,12 +56,13 @@ export default function RootLayout({
             </nav>
 
             {/* DINAMIČKA KOMPONENTA: Prikazuje Prijava/Registracija ILI Profil/Odjava */}
-            <AuthNavButtons />
+            {/* AŽURIRANO: Sada prosljeđujemo 'auth' i 'initialAuthToken' propove */}
+            <AuthNavButtons auth={firebaseAuth} initialAuthToken={firebaseInitialAuthToken} />
           </div>
         </header>
 
         {/* MAIN: Sadržaj stranice */}
-        <main className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto py-8 px-6 bg-white">
+        <main className="min-h-[calc(10vh-100px)] max-w-6xl mx-auto py-8 px-6 bg-white">
           {children}
         </main>
       </body>
