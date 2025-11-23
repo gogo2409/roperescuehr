@@ -1,21 +1,23 @@
-"use client";
+// components/AuthNavButtons.tsx
+"use client"; // Ova direktiva je ispravno postavljena i NE MIJENJAJ JE!
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-    getAuth, 
+    // Ne treba nam 'Auth' tip ovdje jer ga ne primamo kao prop
     signInAnonymously, 
-    signInWithCustomToken, 
     onAuthStateChanged, 
     signOut, 
     User, 
-    Auth, 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword 
 } from 'firebase/auth';
 import { LogOut, LogIn, UserPlus, Loader2, X, AlertTriangle, CheckCircle } from 'lucide-react';
 
+// === DODANO: Direktno uvozimo firebaseAuth iz naše Firebase konfiguracije ===
+import { firebaseAuth } from '@/lib/firebase'; 
+
+// Interface za propse AuthNavButtons komponente. Više ne prima 'auth' kao prop.
 interface AuthNavButtonsProps {
-    auth: Auth | null;
     initialAuthToken?: string | null;
 }
 
@@ -38,8 +40,9 @@ const mapFirebaseError = (code: string) => {
 };
 
 // Jednostavni gumb
-const Button = ({ children, onClick, className = "", disabled = false }: any) => (
+const Button = ({ children, onClick, className = "", disabled = false, type = "button" }: { children: React.ReactNode, onClick: () => void, className?: string, disabled?: boolean, type?: "button" | "submit" }) => (
     <button
+        type={type}
         onClick={onClick}
         disabled={disabled}
         className={`flex items-center justify-center px-4 py-2 font-medium text-white transition-all duration-200 rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-opacity-50 
@@ -50,7 +53,7 @@ const Button = ({ children, onClick, className = "", disabled = false }: any) =>
 );
 
 // Modal za forme (Login / Registration)
-const FormModal = ({ isOpen, onClose, title, children }: any) => {
+const FormModal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
     if (!isOpen) return null;
     return (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
@@ -65,8 +68,8 @@ const FormModal = ({ isOpen, onClose, title, children }: any) => {
     );
 };
 
-// Registration Modal
-const RegistrationModal = ({ isOpen, onClose, auth }: any) => {
+// Registration Modal - prima 'auth' prop, ali mi ćemo ga proslijediti iz glavne komponente
+const RegistrationModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () => void, auth: any }) => { // 'auth' je ovdje bilo `Auth`
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState<any>(null);
@@ -83,7 +86,10 @@ const RegistrationModal = ({ isOpen, onClose, auth }: any) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) return;
+        if (!auth) { // Provjera je i dalje dobra
+            setMessage({ type: 'error', text: 'Autentifikacija nije dostupna.' });
+            return;
+        }
 
         setIsLoading(true);
         setMessage(null);
@@ -132,8 +138,8 @@ const RegistrationModal = ({ isOpen, onClose, auth }: any) => {
     );
 };
 
-// Login Modal
-const LoginModal = ({ isOpen, onClose, auth }: any) => {
+// Login Modal - prima 'auth' prop, ali mi ćemo ga proslijediti iz glavne komponente
+const LoginModal = ({ isOpen, onClose, auth }: { isOpen: boolean, onClose: () => void, auth: any }) => { // 'auth' je ovdje bilo `Auth`
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState<any>(null);
@@ -150,7 +156,10 @@ const LoginModal = ({ isOpen, onClose, auth }: any) => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!auth) return;
+        if (!auth) { // Provjera je i dalje dobra
+            setMessage({ type: 'error', text: 'Autentifikacija nije dostupna.' });
+            return;
+        }
 
         setIsLoading(true);
         setMessage(null);
@@ -200,7 +209,8 @@ const LoginModal = ({ isOpen, onClose, auth }: any) => {
 };
 
 // --- Glavna komponenta ---
-export default function AuthNavButtons({ auth, initialAuthToken }: AuthNavButtonsProps) {
+// === IZMIJENJENO: AuthNavButtons sada NE prima 'auth' prop ===
+export default function AuthNavButtons({ initialAuthToken }: AuthNavButtonsProps) {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [userId, setUserId] = useState("");
@@ -210,28 +220,38 @@ export default function AuthNavButtons({ auth, initialAuthToken }: AuthNavButton
 
     // Slušatelj auth state-a
     useEffect(() => {
-        if (!auth) return;
+        // === KORISTIMO DIREKTNO IMPORTANI firebaseAuth ===
+        if (!firebaseAuth) {
+            console.error("Firebase Auth instanca nije inicijalizirana!");
+            setIsAuthReady(true); // Prikazati UI čak i ako Auth nije spreman, ali s greškom
+            return;
+        }
 
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
             setUser(currentUser);
             setUserId(currentUser?.uid || "Anoniman");
             setIsAuthReady(true);
         });
 
         // Anonimna prijava ako nema korisnika
-        if (!auth.currentUser) {
-            signInAnonymously(auth).catch(err => console.error("Anonimna prijava neuspjela:", err));
+        // === KORISTIMO DIREKTNO IMPORTANI firebaseAuth ===
+        // Provjeri je li anonimna prijava još uvijek željena
+        if (!firebaseAuth.currentUser && !user) { // Dodana provjera `!user` da se izbjegne ponovno prijavljivanje nakon odjave
+            signInAnonymously(firebaseAuth).catch(err => console.error("Anonimna prijava neuspjela:", err));
         }
 
+
         return () => unsubscribe();
-    }, [auth]);
+    }, []); // === VAŽNO: Dependency array je sada prazan ili sadrži samo `initialAuthToken` ako ga koristiš na neki način ===
 
     const handleSignOut = useCallback(() => {
-        if (!auth) return;
-        signOut(auth).catch(err => console.error("Greška pri odjavi:", err));
-    }, [auth]);
+        // === KORISTIMO DIREKTNO IMPORTANI firebaseAuth ===
+        if (!firebaseAuth) return;
+        signOut(firebaseAuth).catch(err => console.error("Greška pri odjavi:", err));
+    }, []); // === VAŽNO: Dependency array je sada prazan ===
 
-    if (!auth || !isAuthReady) {
+    // === KORISTIMO DIREKTNO IMPORTANI firebaseAuth ZA UVJETNO RENDERIRANJE ===
+    if (!firebaseAuth || !isAuthReady) {
         return (
             <div className="flex items-center space-x-4 p-4">
                 <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
@@ -263,8 +283,9 @@ export default function AuthNavButtons({ auth, initialAuthToken }: AuthNavButton
                 </>
             )}
 
-            <RegistrationModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} auth={auth} />
-            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} auth={auth} />
+            {/* === OVDJE PROSLJEĐUJEMO firebaseAuth MODALIMA === */}
+            <RegistrationModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} auth={firebaseAuth} />
+            <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} auth={firebaseAuth} />
         </div>
     );
 }

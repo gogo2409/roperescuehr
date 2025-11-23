@@ -12,8 +12,8 @@ import { faHome } from '@fortawesome/free-solid-svg-icons';
 // Ovu komponentu ZADRŽAVAMO: Ona sada obrađuje PRIJAVU, REGISTRACIJU, PROFIL i ODJAVU
 import AuthNavButtons from '../components/AuthNavButtons'; 
 
-// DODAJ OVO: Uvozimo Firebase Auth instancu i inicijalni auth token
-import { firebaseAuth, firebaseInitialAuthToken } from '@/lib/firebase'; 
+// === UKLONJENO: Više ne uvozimo firebaseAuth i firebaseInitialAuthToken ovdje ===
+// import { firebaseAuth, firebaseInitialAuthToken } from '@/lib/firebase'; 
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -46,7 +46,7 @@ export default function RootLayout({
               >
                 <FontAwesomeIcon 
                   icon={faHome} 
-                  className="h-4 w-4"
+                  className="h-4 w-5" // Prilagodio sam veličinu ikone da bude konzistentna
                 /> 
                 Početna
               </Link>
@@ -56,13 +56,13 @@ export default function RootLayout({
             </nav>
 
             {/* DINAMIČKA KOMPONENTA: Prikazuje Prijava/Registracija ILI Profil/Odjava */}
-            {/* AŽURIRANO: Sada prosljeđujemo 'auth' i 'initialAuthToken' propove */}
-            <AuthNavButtons auth={firebaseAuth} initialAuthToken={firebaseInitialAuthToken} />
+            {/* === IZMIJENJENO: NE PROSLJEĐUJEMO VIŠE 'auth' NI 'initialAuthToken' KAO PROPOVE === */}
+            <AuthNavButtons /> 
           </div>
         </header>
 
         {/* MAIN: Sadržaj stranice */}
-        <main className="min-h-[calc(10vh-100px)] max-w-6xl mx-auto py-8 px-6 bg-white">
+        <main className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto py-8 px-6 bg-white"> {/* Ispravio sam visinu da bude 100vh - header */}
           {children}
         </main>
       </body>

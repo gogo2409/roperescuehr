@@ -1,40 +1,34 @@
 // lib/firebase.ts - Firebase inicijalizacija i izvoz Firebase App i Auth instanci
 
 import { initializeApp, FirebaseApp, getApps, getApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth'; // Dodao Auth tip za type safety
+import { getAuth, Auth } from 'firebase/auth';
 
-// Globalne varijable koje Next.js Build traži
-// Oprez: Vrijednosti iz 'default-app-id' će biti korištene ako __app_id nije definirano
-// Za produkciju, ove varijable moraju doći iz sigurnog izvora (npr. .env, GitHub Secrets)
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-const firebaseConfigStr = typeof __firebase_config !== 'undefined' ? __firebase_config : null;
-const firebaseConfig = firebaseConfigStr ? JSON.parse(firebaseConfigStr) : null;
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+// Dohvati Firebase konfiguraciju iz varijabli okoline
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID, // Ako koristiš Analytics
+};
 
-let app: FirebaseApp | null = null;
-let authInstance: Auth | null = null;
+let app: FirebaseApp;
 
-// Inicijaliziraj Firebase App samo ako config postoji i ako aplikacija već nije inicijalizirana
-if (firebaseConfig && !getApps().length) {
-    try {
-        app = initializeApp(firebaseConfig);
-        console.log("Firebase app initialized successfully from config.");
-        authInstance = getAuth(app); // Inicijaliziraj Auth instancu ovdje
-        console.log("Firebase Auth initialized.");
-    } catch (error) {
-        console.error("Firebase initialization error:", error);
-        // Ako je došlo do greške pri inicijalizaciji, aplikacija i authInstance ostaju null
-    }
-} else if (getApps().length) {
-    // Ako je app već inicijaliziran (npr. na serveru), dohvati postojeću instancu
-    app = getApp();
-    authInstance = getAuth(app); // Dohvati Auth instancu iz postojeće aplikacije
-    console.log("Firebase app and Auth already initialized.");
+// Provjeri je li Firebase aplikacija već inicijalizirana
+if (!getApps().length) {
+  // Ako nije, inicijaliziraj je s konfiguracijom
+  app = initializeApp(firebaseConfig);
+  console.log("Firebase app initialized successfully from environment variables.");
 } else {
-    console.warn("Firebase configuration not found. Firebase features may not work as expected.");
+  // Ako je već inicijalizirana (npr. tijekom hot module replacementa ili SSR-a), dohvati postojeću instancu
+  app = getApp();
+  console.log("Firebase app already initialized, fetched existing instance.");
 }
 
 export const firebaseApp = app;
-export const firebaseAuth = authInstance; // <-- Sada izvozimo Auth instancu!
-export const firebaseInitialAuthToken = initialAuthToken;
-export const firebaseAppId = appId;
+export const firebaseAuth = getAuth(app);
+
+// Uklonio sam `firebaseAppId` i `firebaseInitialAuthToken` jer se ne koriste za standardnu inicijalizaciju klijentskog SDK-a.
+// Ako su ti potrebni za specifične svrhe (npr. SSR s tokenom), to se obično rješava u getServerSideProps ili sličnim Next.js metodama.
