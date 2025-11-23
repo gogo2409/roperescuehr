@@ -1,24 +1,15 @@
 {
-  "hosting": [
-    { // Koristimo array za hosting konfiguraciju
-      "site": "roperescuehr", // <-- OVDJE DEFINIRAMO TAČAN SITE ID!
-      "public": "out", // Next.js će generirati statične datoteke u 'out' folder
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "headers": [
-        {
-          "source": "**",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "public, max-age=3600"
-            }
-          ]
-        }
-      ]
+  "hosting": {
+    "source": ".", // Ispravljeno: "source" je sada u dvostrukim navodnicima
+    "frameworksBackend": {
+      "region": "europe-west3"
     }
-  ]
+  },
+  "functions": {
+    // Ako imaš funkcije, bit će ovdje konfiguracija
+  },
+  "firestore": {
+    // Konfiguracija za Firestore, ako postoji
+  }
+  // ...ostale Firebase konfiguracije, ako postoje
 }
