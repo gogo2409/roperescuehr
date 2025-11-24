@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "@/lib/auth";
+import { login } from "@/lib/auth"; // koristi zajednički auth
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -15,7 +15,7 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await login(email, password);
+      await login(email, password); // koristi lib/auth.ts
       router.push("/"); // preusmjeravanje nakon login-a
     } catch (err: any) {
       setError(err.message);

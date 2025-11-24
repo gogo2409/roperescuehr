@@ -1,24 +1,8 @@
-// app/register/page.tsx
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { initializeApp } from 'firebase/app';
-
-// --- Firebase konfiguracija ---
-const firebaseConfig = {
-  apiKey: "AIzaSyBTVxI_SlQVv6HOEwbsa3Hgg7AqpuRe9EE",
-  authDomain: "roperescuehr.firebaseapp.com",
-  projectId: "roperescuehr",
-  storageBucket: "roperescuehr.firebasestorage.app",
-  messagingSenderId: "440381894034",
-  appId: "1:440381894034:web:81d91874145996c1db254b",
-  measurementId: "G-Z50PCMKXST"
-};
-
-// Inicijalizacija Firebasea
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+import { firebaseAuth } from '@/lib/firebase';
+import { createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from 'firebase/auth';
 
 // Modal za greške
 const ModalMessage = ({ message, onClose }: { message: string, onClose: () => void }) => (
@@ -45,7 +29,7 @@ const RegisterPage: React.FC = () => {
 
   // Slušanje auth state-a
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
       setUser(currentUser);
     });
     return () => unsubscribe();
@@ -56,9 +40,9 @@ const RegisterPage: React.FC = () => {
     if (!email || !password) return;
     try {
       if (isRegistering) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await createUserWithEmailAndPassword(firebaseAuth, email, password);
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
+        setErrorMessage("Za prijavu koristi Login stranicu."); // prijava se ide preko login stranice
       }
       setEmail('');
       setPassword('');
@@ -70,7 +54,7 @@ const RegisterPage: React.FC = () => {
   // Odjava
   const handleSignOut = async () => {
     try {
-      await signOut(auth);
+      await signOut(firebaseAuth);
     } catch (e: any) {
       setErrorMessage(`Greška pri odjavi: ${e.message}`);
     }
