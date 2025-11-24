@@ -1,16 +1,11 @@
 {
   "hosting": {
-    "source": "out",               // build folder za Next.js static export
-    "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ],
+    "source": "out",
     "frameworksBackend": {
       "region": "europe-west3"
-    }
+    },
+    "rewrites": [
+      { "source": "**", "destination": "/index.html" }
+    ]
   }
 }
