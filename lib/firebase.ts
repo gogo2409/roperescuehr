@@ -1,7 +1,9 @@
 // lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
+// Firebase config uzeta iz .env varijabli
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,9 +14,11 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Provjera postoji li već inicijalizirana aplikacija
+// Provjerava postoji li već inicijaliziran app
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Izvoz auth instance
-export const firebaseAuth = getAuth(app);
-export default app;
+// Firebase Auth i Firestore instance
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+export { app, auth, db };

@@ -1,15 +1,16 @@
 {
   "hosting": {
-    "source": ".", // Ispravljeno: "source" je sada u dvostrukim navodnicima
+    "source": "out",               // build folder za Next.js static export
+    "public": "public",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
     "frameworksBackend": {
       "region": "europe-west3"
     }
-  },
-  "functions": {
-    // Ako imaš funkcije, bit će ovdje konfiguracija
-  },
-  "firestore": {
-    // Konfiguracija za Firestore, ako postoji
   }
-  // ...ostale Firebase konfiguracije, ako postoje
 }
