@@ -20,12 +20,25 @@ jobs:
         run: npm install
 
       - name: 3. Izgradnja aplikacije (Build)
+        # Ovdje prosljeđujemo tvoje NEXT_PUBLIC_Firebase varijable okoline
+        # koje se nalaze u GitHub Secrets
         run: npm run build
-
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          # Dodaj ovu liniju ako imaš NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID kao GitHub Secret
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }} 
+          
       - name: Instalacija Firebase CLI
         run: npm install -g firebase-tools
 
-      # NOVI KORAK: Spremi ključ servisnog računa u privremenu datoteku i postavi GOOGLE_APPLICATION_CREDENTIALS
+      # Korak za konfiguraciju servisnog računa ostaje nepromijenjen,
+      # jer se odnosi na autentifikaciju Firebase CLI-a za deployment,
+      # a ne na varijable potrebne Next.js buildu.
       - name: 4. Konfiguracija Servisnog Računa za Firebase CLI
         env:
           SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
@@ -33,7 +46,7 @@ jobs:
           echo "${SERVICE_ACCOUNT_KEY}" > firebase-service-account-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=${PWD}/firebase-service-account-key.json" >> $GITHUB_ENV
 
-      # NOVI KORAK: Omogući podršku za web frameworke
+      # Omogućavanje podrške za web frameworke
       - name: 5. Omogući Web Frameworks Experiment
         run: firebase experiments:enable webframeworks
 
