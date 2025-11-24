@@ -1,8 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, User } from 'firebase/auth';
-import { firebaseAuth } from '@/lib/auth'; // koristi zajedničku auth instancu
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  onAuthStateChanged, 
+  signOut, 
+  User 
+} from 'firebase/auth';
+import { firebaseAuth } from '@/lib/firebase'; // <-- koristi jedinstvenu auth instancu
 
 // Modal za greške
 const ModalMessage = ({ message, onClose }: { message: string, onClose: () => void }) => (
