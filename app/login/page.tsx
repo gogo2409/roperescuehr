@@ -1,9 +1,9 @@
 "use client";
 
-import { firebaseAuth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { firebaseAuth } from "@/lib/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginPage() {
   const router = useRouter();

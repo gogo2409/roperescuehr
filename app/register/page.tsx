@@ -1,8 +1,9 @@
 "use client";
 
-import { firebaseAuth } from "@/lib/firebase";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState, useEffect } from "react";
+import { 
+  firebaseAuth 
+} from "@/lib/firebase";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -10,10 +11,9 @@ import {
   signOut, 
   User 
 } from "firebase/auth";
-import { firebaseAuth } from "@/lib/firebase";
 
 // Modal za greške
-const ModalMessage = ({ message, onClose }: { message: string, onClose: () => void }) => (
+const ModalMessage = ({ message, onClose }: { message: string; onClose: () => void }) => (
   <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
     <div className="bg-white p-6 rounded-lg shadow-2xl max-w-sm w-full">
       <h3 className="text-xl font-bold text-red-600 mb-4">Greška</h3>
