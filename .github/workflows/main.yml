@@ -16,11 +16,11 @@ jobs:
         with:
           node-version: '18.x'
 
-      - name: 2. Instalacija ovisnosti # Ispravljena uvlaka
+      - name: 2. Instalacija ovisnosti
         run: npm install
 
       # PRVI DEBUG KORAK: Provjeri varijable okoline
-      - name: DEBUG: Provjeri Firebase varijable okoline # Ispravljena uvlaka
+      - name: DEBUG: Provjeri Firebase varijable okoline
         run: |
           echo "--- Provjera varijabli okoline za Firebase Build ---"
           echo "API Key (duljina): ${#NEXT_PUBLIC_FIREBASE_API_KEY}"
@@ -43,7 +43,7 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
           
-      - name: 3. Izgradnja aplikacije (Build) # Ispravljena uvlaka
+      - name: 3. Izgradnja aplikacije (Build)
         run: npm run build
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
@@ -54,21 +54,21 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }} 
     
-      - name: Instalacija Firebase CLI # Ispravljena uvlaka
+      - name: Instalacija Firebase CLI
         run: npm install -g firebase-tools
 
-      - name: 4. Konfiguracija Servisnog Računa za Firebase CLI # Ispravljena uvlaka
+      - name: 4. Konfiguracija Servisnog Računa za Firebase CLI
         env:
           SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
         run: |
           echo "${SERVICE_ACCOUNT_KEY}" > firebase-service-account-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=${PWD}/firebase-service-account-key.json" >> $GITHUB_ENV
           
-      - name: 5. Omogući Web Frameworks Experiment # Ispravljena uvlaka
+      - name: 5. Omogući Web Frameworks Experiment
         run: firebase experiments:enable webframeworks
 
-      - name: 6. Deploy na Firebase Hosting # Ispravljena uvlaka
+      - name: 6. Deploy na Firebase Hosting
         run: firebase deploy --only hosting --project roperescuehr
 
-      - name: Završetak Deploya # Ispravljena uvlaka
+      - name: Završetak Deploya
         run: echo "Deploy Complete!"
