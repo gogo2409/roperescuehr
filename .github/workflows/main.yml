@@ -3,7 +3,7 @@ name: Deploy Web Aplikacije na Firebase Hosting
 on:
   push:
     branches:
-      - master # PROVJERI: Mora biti 'master' ako s te grane deployaš
+      - master
 
 jobs:
   build_and_deploy:
@@ -19,9 +19,30 @@ jobs:
       - name: 2. Instalacija ovisnosti
         run: npm install
 
+      # NOVI DEBUG KORAK - SAMO PRIVREMENO!
+      - name: Debug - Provjera Firebase varijabli okoline
+        run: |
+          echo "Provjera varijabli prije builda:"
+          echo "API Key dužina: ${#NEXT_PUBLIC_FIREBASE_API_KEY}"
+          echo "Auth Domain: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}"
+          echo "Project ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}"
+          # NEMOJ ispisivati cijeli API ključ! Samo dužinu za provjeru.
+          if [ -z "${NEXT_PUBLIC_FIREBASE_API_KEY}" ]; then
+            echo "UPOZORENJE: NEXT_PUBLIC_FIREBASE_API_KEY je prazan!"
+          fi
+          if [ -z "${NEXT_PUBLIC_FIREBASE_APP_ID}" ]; then
+            echo "UPOZORENJE: NEXT_PUBLIC_FIREBASE_APP_ID je prazan!"
+          fi
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
+          NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+          
       - name: 3. Izgradnja aplikacije (Build)
-        # Ovdje prosljeđujemo tvoje NEXT_PUBLIC_Firebase varijable okoline
-        # koje se nalaze u GitHub Secrets
         run: npm run build
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
@@ -30,15 +51,11 @@ jobs:
           NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
-          # Dodaj ovu liniju ako imaš NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID kao GitHub Secret
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }} 
           
       - name: Instalacija Firebase CLI
         run: npm install -g firebase-tools
 
-      # Korak za konfiguraciju servisnog računa ostaje nepromijenjen,
-      # jer se odnosi na autentifikaciju Firebase CLI-a za deployment,
-      # a ne na varijable potrebne Next.js buildu.
       - name: 4. Konfiguracija Servisnog Računa za Firebase CLI
         env:
           SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
@@ -46,14 +63,11 @@ jobs:
           echo "${SERVICE_ACCOUNT_KEY}" > firebase-service-account-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=${PWD}/firebase-service-account-key.json" >> $GITHUB_ENV
 
-      # Omogućavanje podrške za web frameworke
       - name: 5. Omogući Web Frameworks Experiment
         run: firebase experiments:enable webframeworks
 
       - name: 6. Deploy na Firebase Hosting
-        # Ažurirano: Uklonjen --token, Firebase CLI sada koristi GOOGLE_APPLICATION_CREDENTIALS
         run: firebase deploy --only hosting --project roperescuehr
-        # Ovdje NEMA --token argumenta. Autentifikacija se vrši putem GOOGLE_APPLICATION_CREDENTIALS
 
       - name: Završetak Deploya
         run: echo "Deploy Complete!"
