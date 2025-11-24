@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { firebaseAuth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { firebaseAuth } from '@/lib/auth'; // koristi zajedničku auth instancu
 
 // Modal za greške
 const ModalMessage = ({ message, onClose }: { message: string, onClose: () => void }) => (
@@ -42,7 +42,7 @@ const RegisterPage: React.FC = () => {
       if (isRegistering) {
         await createUserWithEmailAndPassword(firebaseAuth, email, password);
       } else {
-        setErrorMessage("Za prijavu koristi Login stranicu."); // prijava se ide preko login stranice
+        await signInWithEmailAndPassword(firebaseAuth, email, password);
       }
       setEmail('');
       setPassword('');
