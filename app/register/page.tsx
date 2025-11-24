@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
   onAuthStateChanged, 
   signOut, 
   User 
-} from 'firebase/auth';
-import { firebaseAuth } from '@/lib/firebase'; // <-- koristi jedinstvenu auth instancu
+} from "firebase/auth";
+import { firebaseAuth } from "@/lib/firebase";
 
 // Modal za greške
 const ModalMessage = ({ message, onClose }: { message: string, onClose: () => void }) => (
@@ -28,12 +28,11 @@ const ModalMessage = ({ message, onClose }: { message: string, onClose: () => vo
 
 const RegisterPage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Slušanje auth state-a
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(firebaseAuth, (currentUser) => {
       setUser(currentUser);
@@ -41,7 +40,6 @@ const RegisterPage: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Login / Register funkcija
   const handleAuth = async () => {
     if (!email || !password) return;
     try {
@@ -50,14 +48,13 @@ const RegisterPage: React.FC = () => {
       } else {
         await signInWithEmailAndPassword(firebaseAuth, email, password);
       }
-      setEmail('');
-      setPassword('');
+      setEmail("");
+      setPassword("");
     } catch (e: any) {
-      setErrorMessage(`Greška pri ${isRegistering ? 'registraciji' : 'prijavi'}: ${e.message}`);
+      setErrorMessage(`Greška pri ${isRegistering ? "registraciji" : "prijavi"}: ${e.message}`);
     }
   };
 
-  // Odjava
   const handleSignOut = async () => {
     try {
       await signOut(firebaseAuth);
@@ -73,7 +70,7 @@ const RegisterPage: React.FC = () => {
       {!user ? (
         <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-            {isRegistering ? 'Registracija' : 'Prijava'}
+            {isRegistering ? "Registracija" : "Prijava"}
           </h2>
 
           <input
@@ -95,16 +92,16 @@ const RegisterPage: React.FC = () => {
             onClick={handleAuth}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded font-bold mb-4"
           >
-            {isRegistering ? 'Registriraj se' : 'Prijavi se'}
+            {isRegistering ? "Registriraj se" : "Prijavi se"}
           </button>
 
           <p className="text-center text-sm text-gray-600">
-            {isRegistering ? 'Imaš račun?' : 'Nemaš račun?'}{' '}
+            {isRegistering ? "Imaš račun?" : "Nemaš račun?"}{" "}
             <span
               className="text-blue-700 cursor-pointer font-semibold"
               onClick={() => setIsRegistering(!isRegistering)}
             >
-              {isRegistering ? 'Prijavi se' : 'Registriraj se'}
+              {isRegistering ? "Prijavi se" : "Registriraj se"}
             </span>
           </p>
         </div>

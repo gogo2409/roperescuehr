@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { firebaseAuth } from "@/lib/firebase"; // <-- koristi jedinstvenu auth instancu
 import { useRouter } from "next/navigation";
+import { firebaseAuth } from "@/lib/firebase";
 
 export default function LoginPage() {
   const router = useRouter();
