@@ -16,23 +16,24 @@ jobs:
         with:
           node-version: '18.x'
 
-      - name: 2. Instalacija ovisnosti
+       name: 2. Instalacija ovisnosti
         run: npm install
 
-      # NOVI DEBUG KORAK - SAMO PRIVREMENO!
-      - name: Debug - Provjera Firebase varijabli okoline
+      # PRVI DEBUG KORAK: Provjeri varijable okoline
+      - name: DEBUG: Provjeri Firebase varijable okoline
         run: |
-          echo "Provjera varijabli prije builda:"
-          echo "API Key dužina: ${#NEXT_PUBLIC_FIREBASE_API_KEY}"
+          echo "--- Provjera varijabli okoline za Firebase Build ---"
+          echo "API Key (duljina): ${#NEXT_PUBLIC_FIREBASE_API_KEY}"
           echo "Auth Domain: ${NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}"
           echo "Project ID: ${NEXT_PUBLIC_FIREBASE_PROJECT_ID}"
-          # NEMOJ ispisivati cijeli API ključ! Samo dužinu za provjeru.
+          echo "App ID: ${NEXT_PUBLIC_FIREBASE_APP_ID}"
           if [ -z "${NEXT_PUBLIC_FIREBASE_API_KEY}" ]; then
-            echo "UPOZORENJE: NEXT_PUBLIC_FIREBASE_API_KEY je prazan!"
+            echo "UPOZORENJE: NEXT_PUBLIC_FIREBASE_API_KEY je prazan ili nedefiniran!"
           fi
           if [ -z "${NEXT_PUBLIC_FIREBASE_APP_ID}" ]; then
-            echo "UPOZORENJE: NEXT_PUBLIC_FIREBASE_APP_ID je prazan!"
+            echo "UPOZORENJE: NEXT_PUBLIC_FIREBASE_APP_ID je prazan ili nedefiniran!"
           fi
+          echo "-----------------------------------------------------"
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
@@ -52,8 +53,8 @@ jobs:
           NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }} 
-          
-      - name: Instalacija Firebase CLI
+    
+          - name: Instalacija Firebase CLI
         run: npm install -g firebase-tools
 
       - name: 4. Konfiguracija Servisnog Računa za Firebase CLI
