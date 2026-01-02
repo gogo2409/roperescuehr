@@ -36,3 +36,5 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
           channelId: live
           projectId: roperescuehr
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
