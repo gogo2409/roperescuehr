@@ -144,7 +144,6 @@ export default function MikroIspitPage() {
     </div>
   );
 
-  // --- ISPRAVLJEN ZAVRŠNI EKRAN ---
   if (zavrseno) {
     const postotak = Math.round((rezultati.reduce((a,b)=>a+b.bodovi,0) / (pitanja.reduce((a,b)=>a+(b.Bodovi||1),0) || 1)) * 100);
     const stareMedalje = userStats?.medalje || [];
@@ -158,13 +157,12 @@ export default function MikroIspitPage() {
             {postotak >= 90 ? 'MIKRO ISPIT POLOŽEN!' : 'POKUŠAJTE PONOVNO'}
           </p>
 
-          {/* NOVE MEDALJE - ANIMIRANO */}
           {noveMedalje.length > 0 && (
             <div className="mb-8 md:mb-12 p-6 md:p-8 bg-yellow-50 rounded-[2rem] md:rounded-[3rem] border-4 border-yellow-100">
               <Trophy className="mx-auto text-yellow-500 mb-4" size={32} />
               <h3 className="text-yellow-700 font-black uppercase text-[10px] md:text-sm mb-6 tracking-widest text-center">Nove Medalje!</h3>
               <div className="flex flex-wrap justify-center gap-4">
-                {noveMedalje.map(m => (
+                {noveMedalje.map((m: string) => (
                   <div key={m} className="flex flex-col items-center">
                     <img src={SVE_MEDALJE_PODACI[m]?.src} className="w-16 h-16 md:w-20 md:h-20 animate-bounce" alt={m} />
                     <span className="font-black text-[8px] text-yellow-800 uppercase mt-2 italic text-center max-w-[70px]">{SVE_MEDALJE_PODACI[m]?.naziv}</span>
@@ -174,7 +172,6 @@ export default function MikroIspitPage() {
             </div>
           )}
 
-          {/* MOJA KOLEKCIJA I ZAKLJUČANO - S TOOLTIP-OVIMA */}
           {[
             { naslov: "Moja Kolekcija", data: stareMedalje, isLocked: false },
             { naslov: "Još možeš osvojiti", data: zakljucane, isLocked: true }
@@ -182,7 +179,7 @@ export default function MikroIspitPage() {
             <div key={idx} className="mb-8 text-left">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-4 italic">{sec.naslov}</h4>
               <div className="flex flex-wrap gap-4 bg-gray-50 p-6 rounded-[2.5rem] border border-gray-100 shadow-inner relative">
-                {sec.data.map(m => (
+                {sec.data.map((m: string) => (
                   <div key={m} className="group relative">
                     <div className="relative z-10">
                       <img 
@@ -192,7 +189,6 @@ export default function MikroIspitPage() {
                       />
                       {sec.isLocked && <Lock className="absolute inset-0 m-auto text-gray-400 opacity-40" size={12} />}
                     </div>
-                    {/* Tooltip */}
                     <div className="invisible group-hover:visible absolute bottom-full left-0 mb-3 z-[100] w-56 transform transition-all duration-200 opacity-0 group-hover:opacity-100">
                       <div className="bg-gray-900 text-white p-4 rounded-2xl shadow-2xl border border-gray-700 relative">
                         <div className="flex items-center gap-2 mb-1">
@@ -218,7 +214,6 @@ export default function MikroIspitPage() {
     );
   }
 
-  // --- LOBBY (PO UZORU NA PRIMJER) ---
   if (!ispitZapoceo) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-gray-900/95 backdrop-blur-xl">
@@ -251,7 +246,6 @@ export default function MikroIspitPage() {
     );
   }
 
-  // --- ISPITNI DIO ---
   const p = pitanja[indeks];
   return (
     <div className="max-w-3xl mx-auto p-4 min-h-screen flex flex-col justify-center">

@@ -170,13 +170,13 @@ export default function IspitPage() {
           <h1 className="text-7xl md:text-9xl font-black mb-2 tracking-tighter italic text-gray-900 leading-none">{postotak}%</h1>
           <p className={`text-xl md:text-3xl font-black mb-8 md:mb-12 uppercase italic ${postotak >= 90 ? 'text-green-500' : 'text-red-500'}`}>{postotak >= 90 ? 'ISPIT POLOŽEN!' : 'POKUŠAJTE PONOVNO'}</p>
 
-          {/* NOVE MEDALJE */}
+          {/* NOVE MEDALJE - FIX LINIJA 152 */}
           {noveMedalje.length > 0 && (
             <div className="mb-8 md:mb-12 p-6 md:p-8 bg-yellow-50 rounded-[2rem] md:rounded-[3rem] border-4 border-yellow-100">
               <Trophy className="mx-auto text-yellow-500 mb-4" size={32} />
               <h3 className="text-yellow-700 font-black uppercase text-[10px] md:text-sm mb-6 tracking-widest text-center">Nove Medalje!</h3>
               <div className="flex flex-wrap justify-center gap-4">
-                {noveMedalje.map(m => (
+                {noveMedalje.map((m: string) => (
                   <div key={m} className="flex flex-col items-center">
                     <img src={SVE_MEDALJE_PODACI[m]?.src} className="w-16 h-16 md:w-20 md:h-20 animate-bounce" alt={m} />
                     <span className="font-black text-[8px] text-yellow-800 uppercase mt-2 italic text-center max-w-[70px]">{SVE_MEDALJE_PODACI[m]?.naziv}</span>
@@ -193,7 +193,8 @@ export default function IspitPage() {
             <div key={idx} className="mb-8 text-left">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4 ml-4 italic">{sec.naslov}</h4>
               <div className="flex flex-wrap gap-4 bg-gray-50 p-6 rounded-[2.5rem] border border-gray-100 shadow-inner relative">
-                {sec.data.map(m => (
+                {/* FIX LINIJA 196 */}
+                {sec.data.map((m: string) => (
                   <div key={m} className="group relative">
                     <div className="relative z-10">
                       <img src={SVE_MEDALJE_PODACI[m]?.src} className={`w-12 h-12 md:w-16 md:h-16 transition-all duration-300 ${sec.isLocked ? 'grayscale opacity-20' : 'hover:scale-110 cursor-help'}`} alt={m} />
@@ -225,7 +226,7 @@ export default function IspitPage() {
     );
   }
 
-  // --- LOBBY (VRAĆENE NAPOMENE) ---
+  // --- LOBBY ---
   if (!ispitZapoceo) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-6 bg-gray-900/95 backdrop-blur-xl">
@@ -234,7 +235,6 @@ export default function IspitPage() {
           <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-2 tracking-tighter italic uppercase">Spremni?</h2>
           <p className="text-gray-400 font-bold mb-8 italic text-sm md:text-base">Vrijeme rješavanja i točnost utječu na tvoj ranking i medalje.</p>
           
-          {/* NAPOMENE KOJE SU BILE MAKNUTE */}
           <div className="space-y-3 mb-10 text-left">
             <div className="bg-blue-50 p-4 md:p-5 rounded-2xl md:rounded-3xl border border-blue-100 flex items-center gap-4">
               <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-600 text-white rounded-xl md:rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-200"><Timer size={22} /></div>

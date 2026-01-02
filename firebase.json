@@ -1,15 +1,14 @@
 {
   "hosting": {
-    "source": "out",
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "frameworksBackend": {
-      "region": "europe-west3"
-    },
-    "rewrites": [
-      {
-        "source": "**",
-        "destination": "/index.html"
-      }
-    ]
+      "region": "europe-west1"
+    }
   },
   "functions": [
     {

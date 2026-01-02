@@ -1,6 +1,6 @@
 /**
  * LOKACIJA: lib/strapi.ts
- * STATUS: FULL UPDATE (Shop + Lekcije + Orders + User Sync)
+ * STATUS: STRAPI 5 UPDATE (Fixing URL/Link Property Error)
  */
 
 import { db } from './firebase';
@@ -21,12 +21,25 @@ const STRAPI_URL = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://192.168.1.12:13
 const STRAPI_TOKEN = process.env.NEXT_PUBLIC_STRAPI_API_TOKEN;
 const SESIJA_ENDPOINT = `${STRAPI_URL}/api/kviz-sesijas`;
 
+// --- STRAPI 5 INTERFACE ---
+
+export interface StrapiReklama {
+  id: number;
+  documentId: string;
+  Naslov: string;
+  Link: string;      // Često se koristi u Strapi 5
+  URL?: string;       // DODANO: Da bi build prošao jer komponenta traži .URL
+  Gdje_Prikazati: string;
+  Tip_Prikaza?: 'Puna_Sirina' | 'Standard';
+  Redoslijed?: number;
+  Slika?: {
+    url: string;
+    alternativeText?: string;
+  };
+}
+
 // --- NOVO: FUNKCIJE ZA NARUDŽBE ---
 
-/**
- * Dohvaća Strapi interni ID korisnika na temelju Firebase UID-a.
- * Potrebno za relaciju kod kreiranja narudžbe.
- */
 export async function getStrapiUserId(firebaseUID: string) {
   try {
     const res = await fetch(`${STRAPI_URL}/api/users?filters[firebaseUID][$eq]=${firebaseUID}`, {
@@ -40,16 +53,11 @@ export async function getStrapiUserId(firebaseUID: string) {
   }
 }
 
-/**
- * Dohvaća sve narudžbe povezane s prijavljenim korisnikom.
- * Koristi točan naziv relacije: users_permissions_user
- */
 export async function fetchUserOrders(firebaseUID: string) {
   if (!firebaseUID) return [];
-
   const queryParams = new URLSearchParams({
     "filters[users_permissions_user][firebaseUID][$eq]": firebaseUID,
-    "populate": "*", // Povlači i JSON polje Proizvodi
+    "populate": "*", 
     "sort": "createdAt:desc"
   }).toString();
 
@@ -71,7 +79,7 @@ export async function fetchUserOrders(firebaseUID: string) {
   }
 }
 
-// --- DOHVAT SADRŽAJA (SHOP & LEKCIJE) ---
+// --- DOHVAT SADRŽAJA ---
 
 export async function fetchModuli() {
   const res = await fetch(`${STRAPI_URL}/api/moduls?sort=Broj_Modula:asc`, { cache: 'no-store' });
@@ -79,19 +87,19 @@ export async function fetchModuli() {
 }
 
 export async function fetchLekcije(modulBroj: number) {
-  const url = `${STRAPI_URL}/api/lekcijas?filters[modul][Broj_Modula][$eq]=${modulBroj}&populate[0]=Glavna_Slika&populate[1]=koraks&populate[2]=koraks.Slika&populate[3]=modul&populate[4]=kategorija&populate[5]=kategorija.Ikona&sort[0]=Redni_Broj:asc`;
+  const url = `${STRAPI_URL}/api/lekcijas?filters[modul][Broj_Modula][$eq]=${modulBroj}&populate=Glavna_Slika,koraks.Slika,modul,kategorija.Ikona&sort=Redni_Broj:asc`;
   const res = await fetch(url, { cache: 'no-store' });
   return res.json();
 }
 
 export async function fetchProizvodi() {
-  const url = `${STRAPI_URL}/api/proizvods?populate[0]=Glavna_Slika&populate[1]=Slike&sort=createdAt:desc`;
+  const url = `${STRAPI_URL}/api/proizvods?populate=Glavna_Slika,Slike&sort=createdAt:desc`;
   const res = await fetch(url, { cache: 'no-store' });
   return res.json();
 }
 
 export async function fetchProizvodById(id: string) {
-  const url = `${STRAPI_URL}/api/proizvods/${id}?populate[0]=Glavna_Slika&populate[1]=Slike`;
+  const url = `${STRAPI_URL}/api/proizvods/${id}?populate=Glavna_Slika,Slike`;
   const res = await fetch(url, { cache: 'no-store' });
   return res.json();
 }
@@ -109,8 +117,7 @@ export async function fetchPitanjaByKategorija(kategorijaId: number) {
   try {
     const queryParams = new URLSearchParams({
       "filters[lekcija][kategorija][id][$eq]": kategorijaId.toString(),
-      "populate[lekcija][populate][kategorija][fields][0]": "Naziv",
-      "populate[Slika_pitanja][fields][0]": "url",
+      "populate": "lekcija.kategorija,Slika_pitanja",
       "pagination[pageSize]": "100"
     }).toString();
     const url = `${STRAPI_URL}/api/pitanjes?${queryParams}`;
@@ -186,16 +193,19 @@ export async function syncUserWithStrapi(
   }
 }
 
-// --- REKLAME I ISPITI (Skraćeno radi preglednosti) ---
+// --- REKLAME I ISPITI ---
 
-export async function fetchReklame(gdje: string = 'Footer', target?: string) {
+export async function fetchReklame(gdje: string = 'Footer', target?: string): Promise<StrapiReklama[]> {
   try {
     let url = `${STRAPI_URL}/api/reklamas?filters[Gdje_Prikazati][$eq]=${gdje}&populate=*&sort=Redoslijed:asc`;
     if (target) url += `&filters[Target_Stranice][$in]=Sve,Samo_${target}`;
-    const res = await fetch(url);
+    
+    const res = await fetch(url, { cache: 'no-store' });
     const json = await res.json();
     return json.data || [];
-  } catch { return []; }
+  } catch { 
+    return []; 
+  }
 }
 
 export async function spremiIspitSustav(user: any, podaci: any) {
@@ -219,7 +229,9 @@ export async function spremiIspitSustav(user: any, podaci: any) {
       body: JSON.stringify(strapiPayload),
     });
     return [];
-  } catch (e) { return []; }
+  } catch (e) { 
+    return []; 
+  }
 }
 
 // EKSPORT
@@ -232,8 +244,8 @@ const strapiService = {
   fetchPitanjaByKategorija,
   fetchReklame,
   syncUserWithStrapi,
-  getStrapiUserId,    // NOVO
-  fetchUserOrders,    // NOVO
+  getStrapiUserId,
+  fetchUserOrders,
   spremiIspitSustav
 };
 
