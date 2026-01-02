@@ -1,82 +1,136 @@
-// app/page.tsx
+// 📁 app/page.tsx
 import React from 'react';
 import ModuleCard from '@/components/ModuleCard';
 import Link from 'next/link';
+import FooterReklame from '@/components/FooterReklame';
 
-const HomePage: React.FC = () => {
+// Prisiljavamo Next.js da uvijek dohvaća svježe podatke
+export const dynamic = 'force-dynamic';
+
+async function getGlobalSettings() {
+  try {
+    const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://192.168.1.12:1337';
+    const res = await fetch(`${strapiUrl}/api/global-settings?populate=*`, { 
+      cache: 'no-store' 
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data && json.data.length > 0 ? json.data[0] : null;
+  } catch (error) {
+    console.error("Greška pri dohvaćanju:", error);
+    return null;
+  }
+}
+
+const HomePage = async () => {
+  const settings = await getGlobalSettings();
+  const strapiUrl = process.env.NEXT_PUBLIC_STRAPI_URL || 'http://192.168.1.12:1337';
+
+  const opisTekst = settings?.opis || "Sustav za obuku i provjeru znanja iz tehnika spašavanje s užetom.";
+  const logoPath = settings?.logo?.url;
+  const logoUrl = logoPath 
+    ? (logoPath.startsWith('http') ? logoPath : `${strapiUrl}${logoPath}`)
+    : "/logo.png";
+
   return (
-    // Glavni kontejner stranice ostaje isti (max-w-7xl)
-    <div className="container mx-auto p-4 max-w-7xl min-h-screen"> 
-      
-      {/* 1. HERO SEKCIJA - Dodajemo centriranje i sužavanje (max-w-5xl) */}
-      <section className="mx-auto max-w-5xl"> {/* OVO SUŽAVA HERO SEKCIJU */}
-          <div className="bg-gray-100 py-16 text-center rounded-xl shadow-lg my-12 border-b-4 border-blue-600/70">
-              
-              {/* 🔥 UVELICAN PRIKAZ LOGA (h-28 = 112px visine) 🔥 */}
-              <img 
-                  src="/logo.png" 
-                  alt="Roperescue.hr Logo"
-                  className="h-28 w-auto mx-auto mb-6" // POVEĆANO NA h-28
-              />
+    <>
+      <div className="container mx-auto p-4 max-w-7xl min-h-screen"> 
+        
+        {/* HERO SEKCIJA - Smanjen py-16 na py-10 i my-12 na my-6 */}
+        <section className="mx-auto max-w-5xl">
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 py-10 text-center rounded-xl shadow-lg my-6 border-b-4 border-blue-600/70">
+            
+            {/* Logo smanjen na h-24 */}
+            <img 
+              src={logoUrl} 
+              alt="Logo"
+              className="h-24 w-auto mx-auto mb-4 object-contain"
+            />
 
-              {/* Manji, funkcionalni tekst ispod loga */}
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-6">
-                  Sustav za obuku i provjeru znanja iz tehnika spašavanje s užetom.
-              </p>
-              
-              <div className="mt-8">
-                  {/* Gumb za skrolanje do modula */}
-                  <a href="#moduli">
-                      <span className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105">
-                          Započnite učenje ↓
-                      </span>
-                  </a>
-              </div>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-4 px-6">
+              {opisTekst}
+            </p>
+            
+            <div className="mt-6">
+              <a href="#moduli">
+                <span className="inline-block bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 cursor-pointer text-base">
+                  Započnite učenje ↓
+                </span>
+              </a>
+            </div>
           </div>
-      </section>
-      
-      <hr className="my-10" id="moduli" /> 
-      
-      <h3 className="text-3xl font-bold text-gray-800 mb-8 text-center">Dostupni Moduli za Učenje</h3>
+        </section>
+        
+        {/* Razmak smanjen na my-8 */}
+        <hr className="my-8 dark:border-gray-700" id="moduli" /> 
+        
+        {/* SEKCIJA: GLAVNI MODULI */}
+        <h3 className="text-3xl font-black text-gray-800 dark:text-gray-100 mb-2 text-center uppercase tracking-tighter italic">
+          Moduli za Učenje
+        </h3>
+        <p className="text-center text-gray-600 dark:text-gray-400 mb-8 font-medium italic">
+          Završite sva tri modula i položite ispite kako bi poboljšali svoje znanje.
+        </p>
 
-      {/* 2. Sekcija: Glavni Moduli (Kartice) - Široka mreža modula */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
-        
-        {/* Modul 1 */}
-        <ModuleCard 
-          modul="Modul 1" 
-          naslov="Osnovne Tehnike i Oprema" 
-          ikonaBroj={1 as 1|2|3|4}
-          link="/modul?id=1"
-        />
-        
-        {/* Modul 2 */}
-        <ModuleCard 
-          modul="Modul 2" 
-          naslov="Složene Situacije i Napredne Metode" 
-          ikonaBroj={2 as 1|2|3|4}
-          link="/modul?id=2"
-        />
-        
-        {/* Modul 3 */}
-        <ModuleCard 
-          modul="Modul 3" 
-          naslov="Sigurnost, Protokoli i Certifikacija" 
-          ikonaBroj={3 as 1|2|3|4}
-          link="/modul?id=3"
-        />
-        
-        {/* Modul 4: INSTRUKTOR */}
-        <ModuleCard 
-          modul="Instruktor" 
-          naslov="Metode Obuke i Provjera Znanja" 
-          ikonaBroj={4 as 1|2|3|4}
-          link="/modul?id=instruktor"
-        />
-        
-      </section>
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16 max-w-5xl mx-auto">
+          <ModuleCard modul="Modul 1" naslov="Osnovne Tehnike i Oprema" ikonaBroj={1 as 1|2|3|4} link="/modul?id=1" />
+          <ModuleCard modul="Modul 2" naslov="Složene Situacije i Napredne Metode" ikonaBroj={2 as 1|2|3|4} link="/modul?id=2" />
+          <ModuleCard modul="Modul 3" naslov="Sigurnost, Protokoli i Certifikacija" ikonaBroj={3 as 1|2|3|4} link="/modul?id=3" />
+        </section>
 
-    </div>
+        {/* SEKCIJA: MODUL 4 (ZA ONE KOJI ŽELE ZNATI VIŠE) */}
+        <div className="mb-24 max-w-5xl mx-auto">
+          <div className="max-w-2xl mx-auto">
+            <Link href="/modul?id=4">
+              <div className="relative group cursor-pointer">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 rounded-2xl opacity-75 group-hover:opacity-100 blur transition duration-300 group-hover:duration-200 animate-pulse"></div>
+                
+                <div className="relative bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-xl">
+                  <div className="absolute top-4 right-4">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black bg-gradient-to-r from-purple-500 to-pink-500 text-white uppercase italic">
+                      <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      BONUS MODUL
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+                    <div className="flex-shrink-0">
+                      <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                        <img 
+                          src="/sistem.png" 
+                          alt="Sistemi Spašavanja" 
+                          className="w-14 h-14 object-contain filter brightness-0 invert"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 text-center md:text-left">
+                      <h4 className="text-2xl font-black text-gray-800 dark:text-gray-100 mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors uppercase italic tracking-tighter">
+                        Za one koji žele znati više
+                      </h4>
+                      <p className="text-gray-600 dark:text-gray-300 mb-4 font-medium italic">
+                        Metode obuke, fizika sustava i napredni protokoli za instruktore i profesionalne spašavatelje.
+                      </p>
+                      
+                      <div className="flex items-center justify-center md:justify-start gap-2 text-purple-600 dark:text-purple-400 font-black uppercase text-sm tracking-widest group-hover:gap-4 transition-all italic">
+                        <span>Istraži sadržaj</span>
+                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-purple-100 to-transparent dark:from-purple-900/10 rounded-2xl -z-10 transition-opacity group-hover:opacity-50"></div>
+                </div>
+              </div>
+            </Link>
+          </div>
+        </div>
+      </div>
+      <FooterReklame stranica={undefined} />
+    </>
   );
 };
 

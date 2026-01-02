@@ -1,70 +1,168 @@
-// app/layout.tsx
+'use client';
 
-// CRITICAL IMPORT FOR FONT AWESOME CSS
+import React, { useEffect, useState } from 'react';
 import '@fortawesome/fontawesome-svg-core/styles.css'; 
-
 import './globals.css';
-import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome } from '@fortawesome/free-solid-svg-icons';
-// Ovu komponentu ZADRŽAVAMO: Ona sada obrađuje PRIJAVU, REGISTRACIJU, PROFIL i ODJAVU
-import AuthNavButtons from '../components/AuthNavButtons'; 
+import { faHome, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { usePathname } from 'next/navigation';
 
-// === UKLONJENO: Više ne uvozimo firebaseAuth i firebaseInitialAuthToken ovdje ===
-// import { firebaseAuth, firebaseInitialAuthToken } from '@/lib/firebase'; 
+// Komponente i Context
+import AuthNavButtons from '../components/AuthNavButtons';
+import FooterReklame from '../components/FooterReklame';
+import { ThemeProvider } from '../contexts/ThemeContext';
+import { CartProvider } from '../contexts/CartContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const metadata: Metadata = {
-  title: 'Vaša Aplikacija',
-  description: 'Opis vaše Next.js aplikacije',
-};
+// Komponenta za dinamički Shop link
+function ShopLink() {
+  const [shopEnabled, setShopEnabled] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkShopStatus = async () => {
+      try {
+        const res = await fetch('http://192.168.1.12:1337/api/shop-enabled');
+        const data = await res.json();
+        setShopEnabled(data.data?.Shop_Enabled ?? true);
+      } catch (error) {
+        console.error('Greška pri dohvaćanju shop statusa:', error);
+        setShopEnabled(true); // Default: prikaži shop ako API ne radi
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkShopStatus();
+    
+    // Provjeri svake 30 sekundi (opciono - da se ažurira bez refresha)
+    const interval = setInterval(checkShopStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Ne prikazuj link dok se učitava ili ako je shop disabled
+  if (loading || !shopEnabled) return null;
+
+  return (
+    <Link 
+      href="/shop" 
+      className="text-sm text-blue-400 hover:text-blue-300 transition font-semibold flex items-center gap-1"
+    >
+      <FontAwesomeIcon icon={faShoppingCart} className="h-4 w-5" /> 
+      <span className="hidden sm:inline">Shop</span>
+    </Link>
+  );
+}
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  
+  // PWA i Service Worker logika
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((reg) => console.log('✅ SW registered'))
+        .catch((err) => console.error('❌ SW failed', err));
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      (window as any).deferredPrompt = e;
+      const installBtn = document.getElementById('install-button');
+      if (installBtn) {
+        installBtn.classList.remove('hidden');
+        installBtn.classList.add('flex');
+      }
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = () => {
+    const event = (window as any).deferredPrompt;
+    if (event) {
+      event.prompt();
+      (window as any).deferredPrompt = null;
+    }
+  };
+  
+  const isIspitPage = pathname?.includes('/ispit/');
+  const isPocetnaPage = pathname === '/';
+  
+  let targetStranica: 'Pocetna' | 'Ispit' | 'Profil' | undefined;
+  if (pathname?.includes('/profil')) {
+    targetStranica = 'Profil';
+  }
+
   return (
-    <html lang="hr">
-      {/* POZADINA: Ostavljamo bijelu za glavni sadržaj */}
-      <body className={`${inter.className} bg-white text-gray-800 min-h-screen`}>
-        
-        {/* HEADER: AŽURIRANO NA TAMNU POZADINU (bg-gray-900) I JAČU SJENU */}
-        <header className="bg-gray-900 shadow-2xl sticky top-0 z-10 w-full">  
-          <div className="px-6 py-3 flex justify-between items-center max-w-6xl mx-auto"> 
-            
-            {/* Glavni navigacijski linkovi - samo oni koji su uvijek vidljivi */}
-            <nav className="flex items-center space-x-4">
+    <html lang="hr" suppressHydrationWarning>
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#2563eb" />
+      </head>
+      
+      <body className={inter.className}>
+        <ThemeProvider>
+          <CartProvider>
+            <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
               
-              {/* LINK: Početna (Globalno, uvijek vidljivo) */}
-              <Link 
-                href="/" 
-                className="text-sm text-blue-400 hover:text-blue-300 transition font-semibold flex items-center gap-1"
-              >
-                <FontAwesomeIcon 
-                  icon={faHome} 
-                  className="h-4 w-5" // Prilagodio sam veličinu ikone da bude konzistentna
-                /> 
-                Početna
-              </Link>
-            
-              {/* IZVAĐENO: Moj Profil, Prijava, Registracija - premješteni su u AuthNavButtons */}
+              <header className="bg-gray-900 dark:bg-black shadow-2xl sticky top-0 z-50 w-full">  
+                <div className="px-6 py-3 flex justify-between items-center max-w-6xl mx-auto"> 
+                  
+                  <nav className="flex items-center space-x-4">
+                    <Link 
+                      href="/" 
+                      className="text-sm text-blue-400 hover:text-blue-300 transition font-semibold flex items-center gap-1"
+                    >
+                      <FontAwesomeIcon icon={faHome} className="h-4 w-5" /> 
+                      <span className="hidden sm:inline">Početna</span>
+                    </Link>
 
-            </nav>
+                    {/* Dinamički Shop link - prikazuje se samo ako je enabled */}
+                    <ShopLink />
 
-            {/* DINAMIČKA KOMPONENTA: Prikazuje Prijava/Registracija ILI Profil/Odjava */}
-            {/* === IZMIJENJENO: NE PROSLJEĐUJEMO VIŠE 'auth' NI 'initialAuthToken' KAO PROPOVE === */}
-            <AuthNavButtons /> 
-          </div>
-        </header>
+                    <Link 
+                      href="/leaderboard" 
+                      className="text-sm text-blue-400 hover:text-blue-300 transition font-semibold flex items-center gap-1"
+                    >
+                      <span>🏆</span>
+                      <span className="hidden md:inline">Leaderboard</span>
+                    </Link>
 
-        {/* MAIN: Sadržaj stranice */}
-        <main className="min-h-[calc(100vh-100px)] max-w-6xl mx-auto py-8 px-6 bg-white"> {/* Ispravio sam visinu da bude 100vh - header */}
-          {children}
-        </main>
+                    <button
+                      id="install-button"
+                      onClick={handleInstallClick}
+                      className="text-sm text-blue-400 hover:text-blue-300 transition font-semibold items-center gap-1 hidden"
+                    >
+                      📱 <span className="hidden sm:inline">Instaliraj</span>
+                    </button>
+
+                    <ThemeToggle />
+                  </nav>
+
+                  <AuthNavButtons /> 
+                </div>
+              </header>
+
+              <main className="flex-grow max-w-6xl mx-auto py-8 px-6 w-full">
+                {children}
+              </main>
+
+              {!isIspitPage && !isPocetnaPage && <FooterReklame stranica={targetStranica} />}
+              
+            </div>
+          </CartProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

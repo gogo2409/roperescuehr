@@ -1,13 +1,35 @@
-"use client";
+/**
+ * LOKACIJA: components/AuthNavButtons.tsx
+ * FIX: Ažurirani uvjeti korištenja i sinkronizacija telefona
+ */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { User, onAuthStateChanged, signOut, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { LogOut, LogIn, UserPlus, Loader2, X, AlertTriangle, CheckCircle } from 'lucide-react';
-import { firebaseAuth } from '@/lib/firebase';
+'use client';
 
-interface AuthNavButtonsProps {
-  initialAuthToken?: string | null;
-}
+import React, { useState, useEffect } from 'react';
+import {
+  User,
+  onAuthStateChanged,
+  signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
+import { 
+  LogOut, 
+  LogIn, 
+  UserPlus, 
+  Loader2, 
+  X, 
+  AlertTriangle, 
+  CheckCircle, 
+  User as UserIcon,
+  ShoppingCart,
+  ClipboardList,
+  Trophy 
+} from 'lucide-react';
+import { firebaseAuth, db } from '@/lib/firebase';
+import { syncUserWithStrapi } from '@/lib/strapi';
 
 const mapFirebaseError = (code: string) => {
   switch (code) {
@@ -16,195 +38,260 @@ const mapFirebaseError = (code: string) => {
     case 'auth/weak-password': return 'Lozinka mora imati najmanje 6 znakova.';
     case 'auth/user-not-found':
     case 'auth/wrong-password': return 'Nevažeća email adresa ili lozinka.';
-    case 'auth/operation-not-allowed': return 'Prijava s emailom/lozinkom nije omogućena.';
     default: return 'Neočekivana pogreška. Pokušajte ponovno.';
   }
 };
 
-const Button = ({ children, onClick, className = "", disabled = false, type = "button" }: { children: React.ReactNode, onClick?: () => void, className?: string, disabled?: boolean, type?: "button" | "submit" }) => (
+const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+  <input
+    {...props}
+    className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 outline-none transition-colors ${props.className || ''}`}
+  />
+);
+
+const Button = ({ children, onClick, className = "", disabled = false, type = "button" }: any) => (
   <button
     type={type}
     onClick={onClick}
     disabled={disabled}
-    className={`flex items-center justify-center px-4 py-2 font-medium text-white transition-all duration-200 rounded-lg shadow-md focus:outline-none focus:ring-4 focus:ring-opacity-50 ${disabled ? 'bg-gray-400 cursor-not-allowed' : `${className} hover:shadow-lg hover:brightness-110 focus:ring-indigo-500`}`}
+    className={`flex items-center justify-center px-3 py-1.5 text-sm font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-4 focus:ring-opacity-50 
+      ${disabled ? 'bg-gray-400 dark:bg-gray-600 text-gray-200 cursor-not-allowed' : `${className} hover:opacity-90`}`}
   >
     {children}
   </button>
 );
 
-const FormModal = ({ isOpen, onClose, title, children }: { isOpen: boolean, onClose: () => void, title: string, children: React.ReactNode }) => {
+const FormModal = ({ isOpen, onClose, title, children }: any) => {
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 relative border border-transparent dark:border-gray-700 overflow-hidden">
+        <button onClick={onClose} className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors">
           <X className="h-6 w-6" />
         </button>
-        <h3 className="text-2xl font-bold text-indigo-600 mb-6 border-b pb-2">{title}</h3>
-        {children}
+        <h3 className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mb-6 border-b dark:border-gray-700 pb-2">{title}</h3>
+        <div className="text-gray-900 dark:text-gray-100">
+          {children}
+        </div>
       </div>
     </div>
   );
 };
 
+// --- MODAL ZA REGISTRACIJU ---
 const RegistrationModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [message, setMessage] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setEmail('');
-      setPassword('');
-      setMessage(null);
-      setIsLoading(false);
-    }
-  }, [isOpen]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
+    if (!firstName || !lastName) { setMessage({ type: 'error', text: 'Ime i Prezime su obavezni.' }); return; }
+    setIsLoading(true); setMessage(null);
     try {
-      await createUserWithEmailAndPassword(firebaseAuth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+      await updateProfile(userCredential.user, { displayName: `${firstName} ${lastName}` });
+      
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        firstName, lastName, email, unit: "", phone: "", createdAt: new Date().toISOString()
+      });
+
+      // Sinkronizacija
+      await syncUserWithStrapi(userCredential.user, firstName, lastName, "", "");
+
       setMessage({ type: 'success', text: 'Registracija uspješna!' });
       setTimeout(onClose, 2000);
     } catch (error: any) {
       setMessage({ type: 'error', text: mapFirebaseError(error.code) });
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false); }
   };
 
   return (
     <FormModal isOpen={isOpen} onClose={onClose} title="Registracija">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 border rounded" />
-        <input type="password" placeholder="Lozinka" required value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 border rounded" />
-        <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-700">
-          {isLoading ? 'Registriram...' : <><UserPlus className="h-5 w-5 mr-2" /> Registracija</>}
+        <div className="flex gap-4">
+          <Input placeholder="Ime" required value={firstName} onChange={e => setFirstName(e.target.value)} />
+          <Input placeholder="Prezime" required value={lastName} onChange={e => setLastName(e.target.value)} />
+        </div>
+        <Input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} />
+        <Input type="password" placeholder="Lozinka" required value={password} onChange={e => setPassword(e.target.value)} />
+        
+        {/* NOVI TEKST UVJETA KORIŠTENJA */}
+        <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 max-h-40 overflow-y-auto text-[11px] leading-relaxed text-gray-700 dark:text-gray-400">
+          <p className="mb-2">
+            Prihvaćanjem uvjeta registracije, potvrđujete da razumijete i prihvaćate da ova aplikacija služi isključivo u demonstracijske i edukativne svrhe.
+          </p>
+          <p className="mb-2">
+            Stoga se izričito odričemo bilo kakve odgovornosti za točnost, potpunost ili korisnost bilo koje informacije, usluge ili proizvoda dostupnog putem ove platforme.
+          </p>
+          <p className="mb-2 font-bold text-gray-900 dark:text-gray-200">
+            Koristite na vlastitu odgovornost.
+          </p>
+          <p>
+            Podaci se spremaju u Firebase Firestore. Ne garantiramo njihovu trajnost ili sigurnost u produkcijskom okruženju. Preporučujemo da ne unosite osjetljive osobne podatke.
+          </p>
+        </div>
+
+        <label className="flex items-start gap-3 cursor-pointer group">
+          <input 
+            type="checkbox" 
+            checked={acceptedTerms} 
+            onChange={e => setAcceptedTerms(e.target.checked)} 
+            className="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
+          />
+          <span className="text-xs text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
+            Pročitao/la sam i prihvaćam <strong>uvjete korištenja</strong> i razumijem da je ova aplikacija u edukativne svrhe.
+          </span>
+        </label>
+
+        <Button type="submit" disabled={isLoading || !acceptedTerms} className="w-full bg-indigo-600 text-white py-2">
+          {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Registracija'}
         </Button>
       </form>
-      {message && (
-        <div className={`mt-4 p-3 rounded-lg flex items-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {message.type === 'success' ? <CheckCircle className="h-5 w-5 mr-2" /> : <AlertTriangle className="h-5 w-5 mr-2" />}
-          <p className="text-sm font-medium">{message.text}</p>
-        </div>
-      )}
+      {message && <StatusMessage message={message} />}
     </FormModal>
   );
 };
 
+// --- MODAL ZA PRIJAVU ---
 const LoginModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      setEmail('');
-      setPassword('');
-      setMessage(null);
-      setIsLoading(false);
-    }
-  }, [isOpen]);
-
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setMessage(null);
-    try {
-      await signInWithEmailAndPassword(firebaseAuth, email, password);
+    e.preventDefault(); setIsLoading(true); setMessage(null);
+    try { 
+      const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password); 
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        await syncUserWithStrapi(userCredential.user, data.firstName, data.lastName, data.unit, data.phone);
+      } else {
+        await syncUserWithStrapi(userCredential.user);
+      }
       setMessage({ type: 'success', text: 'Prijava uspješna!' });
-      setTimeout(onClose, 2000);
-    } catch (error: any) {
-      setMessage({ type: 'error', text: mapFirebaseError(error.code) });
-    } finally {
-      setIsLoading(false);
-    }
+      setTimeout(onClose, 1000);
+    } catch (error: any) { 
+      setMessage({ type: 'error', text: mapFirebaseError(error.code) }); 
+    } finally { setIsLoading(false); }
   };
 
   return (
     <FormModal isOpen={isOpen} onClose={onClose} title="Prijava">
       <form onSubmit={handleSubmit} className="space-y-4">
-        <input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full px-4 py-2 border rounded" />
-        <input type="password" placeholder="Lozinka" required value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-2 border rounded" />
-        <Button type="submit" disabled={isLoading} className="w-full bg-green-600 hover:bg-green-700">
-          {isLoading ? 'Prijavljivanje...' : <><LogIn className="h-5 w-5 mr-2" /> Prijava</>}
+        <Input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} />
+        <Input type="password" placeholder="Lozinka" required value={password} onChange={e => setPassword(e.target.value)} />
+        <Button type="submit" disabled={isLoading} className="w-full bg-green-600 text-white py-2">
+          {isLoading ? <Loader2 className="animate-spin h-5 w-5" /> : 'Prijava'}
         </Button>
       </form>
-      {message && (
-        <div className={`mt-4 p-3 rounded-lg flex items-center ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {message.type === 'success' ? <CheckCircle className="h-5 w-5 mr-2" /> : <AlertTriangle className="h-5 w-5 mr-2" />}
-          <p className="text-sm font-medium">{message.text}</p>
-        </div>
-      )}
+      {message && <StatusMessage message={message} />}
     </FormModal>
   );
 };
 
-// Glavna komponenta
-export default function AuthNavButtons({ initialAuthToken }: AuthNavButtonsProps) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-  const [userId, setUserId] = useState("");
-
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+// --- MODAL ZA PROFIL ---
+const ProfileModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: () => void, user: User }) => {
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [unit, setUnit] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<any>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(firebaseAuth, currentUser => {
-      setUser(currentUser);
-      setUserId(currentUser?.uid || "Anoniman");
-      setIsAuthReady(true);
-    });
-
-    if (!firebaseAuth.currentUser) {
-      signInAnonymously(firebaseAuth).catch(console.error);
+    if (isOpen && user) {
+      getDoc(doc(db, "users", user.uid)).then(snap => {
+        if (snap.exists()) {
+          const d = snap.data();
+          setFirstName(d.firstName || '');
+          setLastName(d.lastName || '');
+          setPhone(d.phone || '');
+          setUnit(d.unit || '');
+        }
+      });
     }
+  }, [isOpen, user]);
 
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault(); setIsLoading(true);
+    try {
+      await updateDoc(doc(db, "users", user.uid), { firstName, lastName, phone, unit });
+      await syncUserWithStrapi(user, firstName, lastName, unit, phone);
+      setMessage({ type: 'success', text: 'Spremljeno!' });
+      setTimeout(onClose, 1500);
+    } catch { setMessage({ type: 'error', text: 'Greška!' }); }
+    finally { setIsLoading(false); }
+  };
+
+  return (
+    <FormModal isOpen={isOpen} onClose={onClose} title="Moj profil">
+      <form onSubmit={handleUpdate} className="space-y-4">
+        <div className="flex gap-4">
+          <Input placeholder="Ime" value={firstName} onChange={e => setFirstName(e.target.value)} />
+          <Input placeholder="Prezime" value={lastName} onChange={e => setLastName(e.target.value)} />
+        </div>
+        <Input placeholder="Telefon" value={phone} onChange={e => setPhone(e.target.value)} />
+        <Input placeholder="Postrojba" value={unit} onChange={e => setUnit(e.target.value)} />
+        <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white">Spremi promjene</Button>
+      </form>
+      <div className="mt-6 pt-4 border-t dark:border-gray-700 grid grid-cols-1 gap-2">
+        <a href="/profil" className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors">
+          <ClipboardList className="h-4 w-4" /> Rezultati ispita
+        </a>
+        <a href="/profil/medalje" className="flex items-center justify-center gap-2 w-full bg-yellow-500 text-white py-3 rounded-lg text-sm font-semibold hover:bg-yellow-600 transition-colors">
+          <Trophy className="h-4 w-4" /> Moje medalje
+        </a>
+        <a href="/profil/narudzbe" className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+          <ShoppingCart className="h-4 w-4" /> Moje narudžbe
+        </a>
+      </div>
+      {message && <StatusMessage message={message} />}
+    </FormModal>
+  );
+};
+
+const StatusMessage = ({ message }: { message: any }) => (
+  <div className={`mt-4 p-3 rounded-lg flex items-center ${message.type === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
+    {message.type === 'success' ? <CheckCircle className="h-5 w-5 mr-2" /> : <AlertTriangle className="h-5 w-5 mr-2" />}
+    <p className="text-sm font-medium">{message.text}</p>
+  </div>
+);
+
+export default function AuthNavButtons() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [modals, setModals] = useState({ reg: false, login: false, prof: false });
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, u => { setUser(u); setIsAuthReady(true); });
     return () => unsubscribe();
   }, []);
 
-  const handleSignOut = useCallback(() => {
-    signOut(firebaseAuth).catch(console.error);
-  }, []);
-
-  if (!isAuthReady) {
-    return (
-      <div className="flex items-center space-x-4 p-4">
-        <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
-        <span className="text-gray-600">Provjera autentifikacije...</span>
-      </div>
-    );
-  }
+  if (!isAuthReady) return <Loader2 className="h-5 w-5 animate-spin text-blue-400" />;
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-4 p-4 bg-white shadow-xl rounded-xl">
-      {user && !user.isAnonymous ? (
+    <div className="flex items-center gap-2">
+      {user ? (
         <>
-          <div className="text-sm font-semibold text-gray-700 max-w-xs truncate md:max-w-md lg:max-w-lg">
-            Prijavljen/a kao: <span className="text-indigo-600">{user.email || userId}</span>
-          </div>
-          <Button onClick={handleSignOut} className="bg-red-600 hover:bg-red-700">
-            <LogOut className="h-5 w-5 mr-2" /> Odjava
-          </Button>
+          <Button onClick={() => setModals({ ...modals, prof: true })} className="bg-indigo-600 text-white"><UserIcon className="h-4 w-4 mr-1.5" /> Profil</Button>
+          <Button onClick={() => signOut(firebaseAuth)} className="bg-red-500 text-white"><LogOut className="h-4 w-4 mr-1.5" /> Odjava</Button>
         </>
       ) : (
         <>
-          <p className="text-sm text-gray-500">Anonimni pristup.</p>
-          <Button onClick={() => setIsRegisterModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-            <UserPlus className="h-5 w-5 mr-2" /> Registracija
-          </Button>
-          <Button onClick={() => setIsLoginModalOpen(true)} className="bg-green-600 hover:bg-green-700">
-            <LogIn className="h-5 w-5 mr-2" /> Prijava
-          </Button>
+          <Button onClick={() => setModals({ ...modals, reg: true })} className="bg-indigo-600 text-white">Registracija</Button>
+          <Button onClick={() => setModals({ ...modals, login: true })} className="bg-green-600 text-white">Prijava</Button>
         </>
       )}
-      <RegistrationModal isOpen={isRegisterModalOpen} onClose={() => setIsRegisterModalOpen(false)} />
-      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+      <RegistrationModal isOpen={modals.reg} onClose={() => setModals({ ...modals, reg: false })} />
+      <LoginModal isOpen={modals.login} onClose={() => setModals({ ...modals, login: false })} />
+      {user && <ProfileModal isOpen={modals.prof} onClose={() => setModals({ ...modals, prof: false })} user={user} />}
     </div>
   );
 }

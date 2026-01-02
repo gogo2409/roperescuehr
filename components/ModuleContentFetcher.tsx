@@ -1,13 +1,12 @@
-// components/ModuleContentFetcher.tsx
-'use client'; // <-- KRITIČNA LINIJA: Pretvara ovu komponentu u klijentsku
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import { ChevronRight, GraduationCap, PlayCircle } from 'lucide-react';
 
-
-// --- TIPOVI PRILAGOĐENI FLAT STRUKTURI (Ostavljeno nepromijenjeno) ---
+// --- TIPOVI ---
 interface FlatSlikaItem {
     id: number;
     url: string;
@@ -23,6 +22,7 @@ interface FlatModulItem {
 interface FlatKategorijaItem {
     id: number;
     Naziv: string;
+    Ikona?: FlatSlikaItem | null;
 }
 
 interface KorakItem {
@@ -39,34 +39,32 @@ interface FlatLekcijaItem {
     Namjena: string;
     Oprema_Zahtjev: string;
     Video_URL?: string;
-    
+    Tagovi?: string;
     Glavna_Slika?: FlatSlikaItem | null;
     modul?: FlatModulItem | null;
     koraks?: KorakItem[];
     kategorija?: FlatKategorijaItem | null;
 }
 
+interface CategoryGroup {
+    id: number;
+    name: string;
+    icon: string | null;
+    lessons: FlatLekcijaItem[];
+}
+
 interface ModulContent {
     naslov: string;
     podnaslov: string;
-    lekcije: FlatLekcijaItem[];
+    categories: CategoryGroup[];
     jeIspitDostupan: boolean;
     modulIdBroj: number | undefined;
 }
 
-
-// --- POMOĆNA FUNKCIJA ZA BROJ IKONA (NEPROMIJENJENA) ---
-
 const getIconCount = (id: number | undefined): number => {
-    if (id === undefined) return 0;
-    
-    // Modul 4 (Instruktor) dobiva 1 karabiner
-    if (id === 4) return 1;
-    
-    // Modul 1, 2, 3 dobivaju odgovarajući broj ikona
+    if (id === undefined || id === 4) return 0;
     return Math.min(id, 3); 
 };
-
 
 const ModuleContentFetcher: React.FC = () => {
     const searchParams = useSearchParams();
@@ -74,274 +72,284 @@ const ModuleContentFetcher: React.FC = () => {
     
     const [modulData, setModulData] = useState<ModulContent | null>(null);
     const [loading, setLoading] = useState(true);
-    
+    const [openKategorijaId, setOpenKategorijaId] = useState<number | null>(null);
     const [openLekcijaId, setOpenLekcijaId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const toggleLekcija = (lekcijaId: number) => {
-        setOpenLekcijaId(prevId => (prevId === lekcijaId ? null : lekcijaId));
-    };
-
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.location.hash) {
+            const hash = window.location.hash.substring(1);
+            const [kat, lek] = hash.split('-');
+            if (kat) setOpenKategorijaId(Number(kat));
+            if (lek) setOpenLekcijaId(Number(lek));
+        }
+    }, []);
 
     const fetchModuleContent = async (moduleId: string) => {
-        
         const targetModuleNumber = parseInt(moduleId);
-        
-        const lekcijeUrl = `http://192.168.1.12:1337/api/lekcijas?filters[modul][Broj_Modula][$eq]=${targetModuleNumber}&populate[0]=Glavna_Slika&populate[1]=koraks&populate[2]=koraks.Slika&populate[3]=modul&populate[4]=kategorija&sort[0]=Redni_Broj:asc`;
-        
-        const modulUrl = `http://192.168.1.12:1337/api/moduls?filters[Broj_Modula][$eq]=${targetModuleNumber}`;
+        const baseUrl = "http://192.168.1.12:1337";
+        const lekcijeUrl = `${baseUrl}/api/lekcijas?filters[modul][Broj_Modula][$eq]=${targetModuleNumber}&populate[0]=Glavna_Slika&populate[1]=koraks&populate[2]=koraks.Slika&populate[3]=modul&populate[4]=kategorija&sort[0]=Redni_Broj:asc`;
+        const modulUrl = `${baseUrl}/api/moduls?filters[Broj_Modula][$eq]=${targetModuleNumber}`;
         
         try {
             const lekcijeRes = await fetch(lekcijeUrl, { cache: 'no-store' });
-            
-            if (!lekcijeRes.ok) {
-                 throw new Error(`Greška pri dohvaćanju lekcija (Status ${lekcijeRes.status})`);
-            }
-
             const lekcijeJson = await lekcijeRes.json();
             const lekcijeArray: FlatLekcijaItem[] = lekcijeJson.data;
 
-            let modulTitle = `Modul ${targetModuleNumber}`;
+            const uniqueKategorijaIds = [...new Set(lekcijeArray.filter(l => l.kategorija).map(l => l.kategorija!.id))];
+            const kategorijeMap = new Map();
+
+            if (uniqueKategorijaIds.length > 0) {
+                const kategorijeRes = await fetch(`${baseUrl}/api/kategorijas?populate=Ikona_Slika`, { cache: 'no-store' });
+                const kategorijeJson = await kategorijeRes.json();
+                kategorijeJson.data.filter((kat: any) => uniqueKategorijaIds.includes(kat.id)).forEach((kat: any) => {
+                    kategorijeMap.set(kat.id, {
+                        id: kat.id,
+                        Naziv: kat.Naziv,
+                        Ikona: kat.Ikona_Slika ? { url: kat.Ikona_Slika.url, alternativeText: kat.Ikona_Slika.alternativeText } : null
+                    });
+                });
+            }
+
+            lekcijeArray.forEach(lekcija => {
+                if (lekcija.kategorija && kategorijeMap.has(lekcija.kategorija.id)) {
+                    lekcija.kategorija = kategorijeMap.get(lekcija.kategorija.id);
+                }
+            });
+
+            let modulTitle = targetModuleNumber === 4 ? "Za one koji žele znati više" : `Modul ${targetModuleNumber}`;
             let modulId = targetModuleNumber;
             let jeIspitDostupan = targetModuleNumber !== 4;
             
             try {
                 const modulRes = await fetch(modulUrl, { cache: 'no-store' });
                 const modulJson = await modulRes.json();
-                
                 const modulInfo = modulJson.data.length > 0 ? modulJson.data[0] : null;
-
                 if (modulInfo && modulInfo.attributes) {
-                    modulTitle = modulInfo.attributes.Naslov;
+                    modulTitle = targetModuleNumber === 4 ? "Za one koji žele znati više" : modulInfo.attributes.Naslov;
                     modulId = modulInfo.attributes.Broj_Modula;
                     jeIspitDostupan = modulInfo.attributes.Broj_Modula !== 4;
-                } else if (lekcijeArray.length > 0 && lekcijeArray[0].modul) {
-                    if (lekcijeArray[0].modul.Naslov) {
-                        modulTitle = lekcijeArray[0].modul.Naslov;
-                    }
                 }
-            } catch (modulError) {
-                console.warn("API poziv za Modul je pao. Korišten je fallback naslov.");
-            }
+            } catch (e) { console.warn("Modul fetch fallback"); }
             
-            setModulData({
-                naslov: modulTitle,
-                podnaslov: modulId === 4
-                    ? 'Obuka za Instruktore'
-                    : `Detaljno gradivo za Modul ${modulId}`,
-                lekcije: lekcijeArray,
-                jeIspitDostupan: jeIspitDostupan,
-                modulIdBroj: modulId
+            const categoryMap = new Map<string, CategoryGroup>();
+            lekcijeArray.forEach((lekcija) => {
+                if (!lekcija.kategorija) return;
+                const catName = lekcija.kategorija.Naziv;
+                if (!categoryMap.has(catName)) {
+                    categoryMap.set(catName, {
+                        id: lekcija.kategorija.id,
+                        name: catName,
+                        icon: lekcija.kategorija.Ikona?.url ? `${baseUrl}${lekcija.kategorija.Ikona.url}` : null,
+                        lessons: []
+                    });
+                }
+                categoryMap.get(catName)!.lessons.push(lekcija);
             });
 
-        } catch (error) {
-            console.error("Fatalna greška pri dohvaćanju podataka:", error);
             setModulData({
-                naslov: 'API Greška',
-                podnaslov: `Povezivanje sa Strapi API-jem je neuspješno. Greška: ${error instanceof Error ? error.message : 'Nepoznata greška.'}`,
-                lekcije: [],
-                jeIspitDostupan: false,
-                modulIdBroj: undefined
+                naslov: modulTitle,
+                podnaslov: targetModuleNumber === 4 
+                    ? 'Napredne metode obuke - Dodatni sadržaji za instruktore' 
+                    : `Detaljno gradivo za Modul ${modulId}`,
+                categories: Array.from(categoryMap.values()),
+                jeIspitDostupan,
+                modulIdBroj: modulId
             });
+        } catch (error) {
+            console.error("Greška:", error);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        if (id) {
-            setLoading(true);
-            fetchModuleContent(id);
-        } else {
-            setLoading(false);
-        }
+        if (id) fetchModuleContent(id);
     }, [id]);
     
     if (loading || !modulData) {
         return (
-            <div className="text-center p-20">
-                <div className="text-4xl text-blue-500 animate-pulse">Učitavanje...</div>
+            <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-900">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
         );
     }
     
-    // --- Prikaz Sadržaja ---
-    let bojaKlase = 'text-gray-700';
-    if (modulData.modulIdBroj === 1) bojaKlase = 'text-blue-600';
-    else if (modulData.modulIdBroj === 2) bojaKlase = 'text-orange-600';
-    else if (modulData.modulIdBroj === 3) bojaKlase = 'text-red-600';
-    
-    const ispitLink = `/ispit?modulId=${id}`;
+    let bojaKlase = 'text-gray-700 dark:text-gray-300';
+    if (modulData.modulIdBroj === 1) bojaKlase = 'text-blue-600 dark:text-blue-400';
+    else if (modulData.modulIdBroj === 2) bojaKlase = 'text-orange-600 dark:text-orange-400';
+    else if (modulData.modulIdBroj === 3) bojaKlase = 'text-red-600 dark:text-red-400';
+    else if (modulData.modulIdBroj === 4) bojaKlase = 'text-purple-600 dark:text-purple-400';
 
-    const brojIkona = getIconCount(modulData.modulIdBroj);
-    const ikoneArray = Array(brojIkona).fill(null); 
-    
     return (
-        <div className="container mx-auto p-8 max-w-4xl">
-            <header className="text-center my-8 border-b pb-4">
-                
-                <div className="flex items-center justify-center space-x-3">
-                    
-                    <div className={`flex space-x-1 items-center`}> 
-                        {ikoneArray.map((_, index) => (
-                            <img 
-                                key={index} 
-                                src="/carabiner-single.png" 
-                                alt="Karabiner" 
-                                // 🔥 AŽURIRANO: Veće dimenzije i object-contain
-                                className="h-10 w-10 object-contain" 
-                            />
-                        ))}
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+            {/* Header */}
+            <div className="bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 py-8 text-center">
+                <div className="container mx-auto px-4">
+                    <div className="flex justify-center space-x-2 mb-4"> 
+                        {modulData.modulIdBroj === 4 ? (
+                            <img src="/sistem.png" alt="Sistem" className="h-16 w-16" />
+                        ) : (
+                            Array(getIconCount(modulData.modulIdBroj)).fill(null).map((_, i) => (
+                                <img key={i} src="/carabiner-single.png" alt="Karabiner" className="h-10 w-10" />
+                            ))
+                        )}
                     </div>
-                    
-                    <h1 className={`text-4xl font-extrabold ${bojaKlase}`}>
-                        {modulData.naslov}
-                    </h1>
+                    <h1 className={`text-4xl md:text-5xl font-extrabold mb-2 ${bojaKlase}`}>{modulData.naslov}</h1>
+                    <p className="text-xl text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">{modulData.podnaslov}</p>
                 </div>
-
-                <p className="text-xl text-gray-600 mt-2">{modulData.podnaslov}</p>
-                
-                 {modulData.naslov === 'API Greška' && (
-                     <p className="text-red-600 mt-2 font-bold">{modulData.podnaslov}</p>
-                 )}
-            </header>
-
-            {/* LISTA LEKCIJA (Ostatak koda ostaje nepromijenjen) */}
-            <div className="space-y-4">
-                {modulData.lekcije && modulData.lekcije.length > 0 ? (
-                    
-                    modulData.lekcije.map((lekcija: FlatLekcijaItem) => (
-                        <section
-                            key={lekcija.id}
-                            className={`bg-white p-6 rounded-lg shadow-lg mb-4 border-l-4 transition-all duration-300 cursor-pointer
-                                         ${openLekcijaId === lekcija.id
-                                             ? 'border-blue-600/90 shadow-xl'
-                                             : 'border-blue-600/50 hover:shadow-xl'
-                                         }`}
-                            onClick={() => toggleLekcija(lekcija.id)}
-                        >
-                            
-                            <h2 className="text-2xl font-bold text-gray-800 flex justify-between items-start select-none">
-                                <div className="flex items-center gap-4">
-                                    {lekcija.Glavna_Slika?.url ? (
-                                        <img
-                                            src={`http://192.168.1.12:1337${lekcija.Glavna_Slika.url}`}
-                                            alt={lekcija.Glavna_Slika.alternativeText || 'Slika lekcije'}
-                                            className="w-12 h-12 object-cover rounded-full shadow-md border-2 border-blue-200"
-                                        />
-                                    ) : (
-                                        <div className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-lg font-bold">
-                                            #
-                                        </div>
-                                    )}
-                                    <span>{lekcija.Redni_Broj}. {lekcija.Naziv_Tehnike}</span>
-                                </div>
-                                
-                                <span className={`text-xl transition-transform duration-300 ${openLekcijaId === lekcija.id ? 'transform rotate-180' : ''}`}>
-                                    ▼
-                                </span>
-                            </h2>
-                            
-                            {openLekcijaId === lekcija.id && (
-                                <div className="mt-4 pt-4 border-t border-gray-200">
-                                    
-                                    {lekcija.Glavna_Slika?.url && (
-                                        <div className="my-6 text-center">
-                                            <img
-                                                src={`http://192.168.1.12:1337${lekcija.Glavna_Slika.url}`}
-                                                alt={lekcija.Glavna_Slika.alternativeText || lekcija.Naziv_Tehnike}
-                                                className="w-full max-h-96 object-contain rounded-lg shadow-md mx-auto"
-                                            />
-                                        </div>
-                                    )}
-
-                                    <h3 className="text-lg font-semibold mt-4 text-green-700">Namjena:</h3>
-                                    <div className="prose max-w-none text-gray-700 mt-2 mb-6">
-                                        <ReactMarkdown>
-                                            {lekcija.Namjena}
-                                        </ReactMarkdown>
-                                    </div>
-
-                                    <h3 className="text-lg font-semibold text-red-700">Oprema i Zahtjevi:</h3>
-                                    <div className="prose max-w-none text-gray-700 mt-2">
-                                        <ReactMarkdown>
-                                            {lekcija.Oprema_Zahtjev}
-                                        </ReactMarkdown>
-                                    </div>
-
-                                    {lekcija.kategorija && (
-                                        <div className="mt-6 pt-4 border-t border-gray-200">
-                                            <h3 className="text-lg font-semibold text-gray-800">Kategorija:</h3>
-                                            <Link href={`/kategorija?naziv=${lekcija.kategorija.Naziv}`} onClick={(e) => e.stopPropagation()}>
-                                                <span className="inline-block mt-2 px-4 py-2 bg-purple-100 text-purple-700 font-bold rounded-full hover:bg-purple-200 transition duration-150 cursor-pointer shadow-sm">
-                                                    {lekcija.kategorija.Naziv}
-                                                </span>
-                                            </Link>
-                                        </div>
-                                    )}
-
-                                    {lekcija.koraks?.length && lekcija.koraks.length > 0 && (
-                                        <div className="mt-6 border-t pt-4">
-                                            <h3 className="text-xl font-bold mb-3 text-gray-800">Koraci:</h3>
-                                            <ol className="list-decimal list-inside space-y-3 pl-4">
-                                                {lekcija.koraks
-                                                    .sort((a: KorakItem, b: KorakItem) => a.Redni_Broj - b.Redni_Broj)
-                                                    .map((korak: KorakItem) => (
-                                                        <li key={korak.id} className="text-gray-700">
-                                                            <span className="font-semibold">{korak.Redni_Broj}.</span>
-                                                            <span className="inline ml-2">
-                                                                <ReactMarkdown>{korak.Tekst}</ReactMarkdown>
-                                                            </span>
-
-                                                            {korak.Slika?.url && (
-                                                                <div className="my-3 ml-6">
-                                                                    <img
-                                                                        src={`http://192.168.1.12:1337${korak.Slika.url}`}
-                                                                        alt={korak.Slika.alternativeText || `Slika za korak ${korak.Redni_Broj}`}
-                                                                        className="w-full max-h-60 object-contain rounded-lg shadow-sm"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </li>
-                                                    ))}
-                                            </ol>
-                                        </div>
-                                    )}
-
-                                    {lekcija.Video_URL && (
-                                        <div className="mt-6 text-center">
-                                            <a href={lekcija.Video_URL} target="_blank" rel="noopener noreferrer" className="inline-block bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg transition duration-150">
-                                                Pogledaj Video Lekciju
-                                            </a>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </section>
-                    ))
-                ) : (
-                    <div className="text-center p-10 text-gray-500">
-                        Nema pronađenih lekcija za ovaj modul.
-                    </div>
-                )}
             </div>
 
-            {modulData.jeIspitDostupan && (
-                <div className="mt-10 text-center">
-                    <Link href={ispitLink}>
-                        <span className="inline-block bg-yellow-500 hover:bg-yellow-600 text-white font-bold text-xl py-4 px-12 rounded-lg shadow-lg transition duration-150 ease-in-out transform hover:scale-105">
-                            Započni Ispit za Modul {id}
-                            <span className="ml-3 text-2xl">⚡</span>
-                        </span>
+            <div className="container mx-auto px-4 py-8 max-w-5xl">
+                {/* Search */}
+                <div className="mb-8 relative">
+                    <input
+                        type="text"
+                        placeholder="Pretraži lekcije..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-5 py-4 pl-14 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 outline-none focus:border-blue-500 transition-all"
+                    />
+                    <svg className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+
+                {/* Categories */}
+                <div className="space-y-6">
+                    {modulData.categories.map((category) => {
+                        const filteredLessons = category.lessons.filter(l => 
+                            l.Naziv_Tehnike.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            l.Namjena.toLowerCase().includes(searchQuery.toLowerCase())
+                        );
+
+                        if (searchQuery && filteredLessons.length === 0) return null;
+                        const isOpen = openKategorijaId === category.id;
+
+                        return (
+                            <div key={category.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                <div 
+                                    className="p-5 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/40 flex items-center gap-4 transition-colors"
+                                    onClick={() => setOpenKategorijaId(isOpen ? null : category.id)}
+                                >
+                                    {category.icon && <img src={category.icon} alt="" className="w-10 h-10 object-contain p-2 bg-gray-100 dark:bg-gray-700 rounded-xl" />}
+                                    <div className="flex-1">
+                                        <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{category.name}</h3>
+                                        <p className="text-sm text-gray-500">{filteredLessons.length} lekcija</p>
+                                    </div>
+                                    <ChevronRight className={`w-6 h-6 transition-transform ${isOpen ? 'rotate-90 text-blue-500' : 'text-gray-400'}`} />
+                                </div>
+
+                                {isOpen && (
+                                    <div className="border-t dark:border-gray-700">
+                                        {filteredLessons.map((lekcija) => {
+                                            const isLekOpen = openLekcijaId === lekcija.id;
+                                            return (
+                                                <div key={lekcija.id} className="border-b dark:border-gray-700 last:border-0">
+                                                    <div
+                                                        onClick={() => setOpenLekcijaId(isLekOpen ? null : lekcija.id)}
+                                                        className="px-6 py-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                                                    >
+                                                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                                            {lekcija.Redni_Broj}
+                                                        </div>
+                                                        <span className="flex-1 font-medium text-gray-700 dark:text-gray-200">{lekcija.Naziv_Tehnike}</span>
+                                                        <ChevronRight className={`w-5 h-5 transition-transform ${isLekOpen ? 'rotate-90' : 'text-gray-300'}`} />
+                                                    </div>
+
+                                                    {isLekOpen && (
+                                                        <div className="px-6 pb-8 pt-4 bg-white dark:bg-gray-800/60 animate-in fade-in duration-300">
+                                                            {lekcija.Glavna_Slika?.url && (
+                                                                <img src={`http://192.168.1.12:1337${lekcija.Glavna_Slika.url}`} className="w-full max-h-80 object-contain rounded-xl mb-6 bg-gray-50 dark:bg-gray-900/50 p-2 shadow-sm" alt="" />
+                                                            )}
+                                                            <div className="space-y-6">
+                                                                <section>
+                                                                    <h4 className="text-xs font-bold uppercase tracking-widest text-green-600 dark:text-green-400 mb-2">Namjena</h4>
+                                                                    <div className="prose prose-sm dark:prose-invert max-w-none 
+                                                                                prose-ol:list-decimal prose-ol:pl-6
+                                                                                prose-li:marker:text-blue-600 prose-li:marker:font-bold
+                                                                                prose-li:my-2 text-gray-600 dark:text-gray-300 leading-relaxed">
+                                                                        <ReactMarkdown>
+                                                                            {lekcija.Namjena
+                                                                                .replace(/(\d+\.)\s*/g, '$1 ')
+                                                                                .split('\n')
+                                                                                .map(l => l.trim())
+                                                                                .filter(l => l.length > 0)
+                                                                                .join('\n\n')}
+                                                                        </ReactMarkdown>
+                                                                    </div>
+                                                                </section>
+
+                                                                {lekcija.Oprema_Zahtjev && (
+                                                                    <section>
+                                                                        <h4 className="text-xs font-bold uppercase tracking-widest text-red-600 dark:text-red-400 mb-2">Potrebna oprema</h4>
+                                                                        <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{lekcija.Oprema_Zahtjev}</p>
+                                                                    </section>
+                                                                )}
+
+                                                                {lekcija.koraks && lekcija.koraks.length > 0 && (
+                                                                    <div className="bg-blue-50/50 dark:bg-blue-900/10 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/20 shadow-sm">
+                                                                        <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
+                                                                            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                                                            Koraci izvođenja:
+                                                                        </h4>
+                                                                        <div className="space-y-4">
+                                                                            {lekcija.koraks.sort((a,b) => a.Redni_Broj - b.Redni_Broj).map(k => (
+                                                                                <div key={k.id} className="flex gap-3">
+                                                                                    <span className="font-bold text-blue-500 min-w-[20px]">{k.Redni_Broj}.</span>
+                                                                                    <div className="prose prose-sm dark:prose-invert leading-relaxed"><ReactMarkdown>{k.Tekst}</ReactMarkdown></div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                                {lekcija.Video_URL && (
+                                                                    <a href={lekcija.Video_URL} target="_blank" rel="noopener noreferrer" className="mt-4 flex items-center justify-center gap-2 w-full py-4 bg-gray-900 dark:bg-blue-600 text-white rounded-xl font-bold hover:bg-gray-800 dark:hover:bg-blue-500 transition-all shadow-md">
+                                                                        📺 Pogledaj video lekciju
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        
+                                        {/* --- ISPRAVLJENA PUTANJA ZA MIKRO ISPIT --- */}
+                                        <div className="p-6 bg-blue-50/50 dark:bg-blue-900/10 flex flex-col items-center">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <GraduationCap className="text-blue-600" size={24} />
+                                                <span className="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-400">Provjera znanja</span>
+                                            </div>
+                                            <Link 
+                                                href={`/ispit/mikro-ispit/${category.id}`} 
+                                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border-2 border-blue-500 text-blue-600 px-8 py-3 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-500 hover:text-white transition-all shadow-lg active:scale-95"
+                                            >
+                                                <PlayCircle size={18} />
+                                                Započni Mikro Ispit: {category.name}
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="mt-12 flex flex-col items-center gap-6">
+                    {modulData.jeIspitDostupan && (
+                        <Link href={`/ispit/${id}`} className="w-full max-w-md">
+                            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-5 rounded-2xl shadow-xl shadow-blue-500/20 transition-all transform hover:scale-[1.01] active:scale-95">
+                                📝 Započni Ispit Modula {id}
+                            </button>
+                        </Link>
+                    )}
+                    <Link href="/" className="text-gray-500 hover:text-blue-600 font-medium transition-colors">
+                        {/* Pazi: Ovdje je Link, ne gumb, da ostane čisto */}
+                        ← Natrag na popis modula
                     </Link>
                 </div>
-            )}
-            
-            <div className="text-center mt-12">
-                <Link href="/">
-                    <span className="text-blue-500 hover:text-blue-700 transition cursor-pointer">
-                        &larr; Natrag na početnu
-                    </span>
-                </Link>
             </div>
         </div>
     );
