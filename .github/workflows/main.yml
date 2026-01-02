@@ -13,11 +13,12 @@ jobs:
       # 1. Checkout koda
       - uses: actions/checkout@v4
 
-      # 2. Setup Node.js
-      - name: Setup Node.js (v18.x)
+      # 2. Setup Node.js (AŽURIRANO NA v20)
+      - name: Setup Node.js (v20)
         uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '20'
+          cache: 'npm'
 
       # 3. Instalacija ovisnosti
       - name: Instalacija ovisnosti
