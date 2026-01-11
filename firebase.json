@@ -8,7 +8,7 @@
     ],
     "frameworksBackend": {
       "region": "europe-west1",
-      "invoker": "private"
+      "invoker": "public"
     }
   },
   "extensions": {}
