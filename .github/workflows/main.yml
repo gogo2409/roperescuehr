@@ -29,10 +29,14 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
 
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
+
       - name: Deploy to Firebase
         run: |
           npm install -g firebase-tools
           firebase deploy --only hosting,functions --force --non-interactive
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_ROPERESCUEHR }}
           FIREBASE_CLI_EXPERIMENTS: webframeworks
