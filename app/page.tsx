@@ -1,10 +1,39 @@
 // 📁 app/page.tsx
 import React from 'react';
+import { Metadata } from 'next'; // Uvozimo tip za metapodatke
 import ModuleCard from '@/components/ModuleCard';
 import Link from 'next/link';
 import FooterReklame from '@/components/FooterReklame';
-import GlobalStats from '@/components/GlobalStats'; // Uvozimo novu klijentsku komponentu
+import GlobalStats from '@/components/GlobalStats'; 
 import { ArrowRight } from 'lucide-react';
+
+// --- METADATA SEKCIJA (Ovo rješava izgled na WhatsApp-u i Google-u) ---
+export const metadata: Metadata = {
+  title: 'roperescue.hr | Znanje koje spašava živote',
+  description: 'Interaktivna platforma za obuku i provjeru znanja iz tehnika spašavanja s užetom. Savladaj napredne sustave kroz module i ispite.',
+  openGraph: {
+    title: 'roperescue.hr | Sustav za obuku spašavatelja',
+    description: 'Interaktivni moduli i provjera znanja iz tehnika spašavanja s užetom.',
+    url: 'https://roperescue.hr', // Zamijeni svojom pravom domenom
+    siteName: 'RopeRescue HR',
+    images: [
+      {
+        url: '/og-image.jpg', // Putanja do tvoje slike u public folderu
+        width: 1200,
+        height: 630,
+        alt: 'Rope Rescue Obuka',
+      },
+    ],
+    locale: 'hr_HR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'roperescue.hr | Obuka spašavatelja',
+    description: 'Znanje koje spašava živote. Savladaj tehnike spašavanja s užetom.',
+    images: ['/og-image.jpg'],
+  },
+};
 
 // Prisiljavamo Next.js da uvijek dohvaća svježe podatke iz Strapija
 export const dynamic = 'force-dynamic';
@@ -126,7 +155,7 @@ const HomePage = async () => {
           </div>
         </div>
 
-        {/* --- STATISTIKA (Učitava se na klijentu da Firebase radi ispravno) --- */}
+        {/* --- STATISTIKA --- */}
         <GlobalStats />
 
       </div>
