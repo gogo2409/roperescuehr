@@ -6,7 +6,7 @@ import './globals.css';
 import { Inter } from 'next/font/google';
 import Link from 'next/link';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHome, faShoppingCart } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faShoppingCart, faInfoCircle } from '@fortawesome/free-solid-svg-icons'; // Dodana faInfoCircle
 import { usePathname } from 'next/navigation';
 
 // Komponente i Context
@@ -39,12 +39,10 @@ function ShopLink() {
 
     checkShopStatus();
     
-    // Provjeri svake 30 sekundi (opciono - da se ažurira bez refresha)
     const interval = setInterval(checkShopStatus, 30000);
     return () => clearInterval(interval);
   }, []);
 
-  // Ne prikazuj link dok se učitava ili ako je shop disabled
   if (loading || !shopEnabled) return null;
 
   return (
@@ -128,7 +126,6 @@ export default function RootLayout({
                       <span className="hidden sm:inline">Početna</span>
                     </Link>
 
-                    {/* Dinamički Shop link - prikazuje se samo ako je enabled */}
                     <ShopLink />
 
                     <Link 
@@ -137,6 +134,15 @@ export default function RootLayout({
                     >
                       <span>🏆</span>
                       <span className="hidden md:inline">Leaderboard</span>
+                    </Link>
+
+                    {/* NOVI LINK: O NAMA */}
+                    <Link 
+                      href="/o-nama" 
+                      className="text-sm text-blue-400 hover:text-blue-300 transition font-semibold flex items-center gap-1"
+                    >
+                      <FontAwesomeIcon icon={faInfoCircle} className="h-4 w-5" />
+                      <span className="hidden md:inline">O nama</span>
                     </Link>
 
                     <button

@@ -17,8 +17,6 @@ import {
   History,
   ArrowLeft,
   Lock,
-  Zap,
-  Target,
   BookOpen
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -87,6 +85,7 @@ export default function MikroIspitPage() {
         if (!p || p.length === 0) setError("Nema pitanja.");
         else {
           setPitanja(p);
+          // BITNO: Dohvaćanje naziva kategorije iz Strapi odgovora
           setNazivKategorije(p[0].lekcija?.kategorija?.Naziv || "Mikro Ispit");
         }
       } catch (e) { setError("Greška pri učitavanju."); }
@@ -110,8 +109,12 @@ export default function MikroIspitPage() {
     const jeTocno = odabrano === p.Tocan_Odgovor;
     const noviNiz = [...rezultati, { jeTocno, bodovi: jeTocno ? (p.Bodovi || 1) : 0 }];
     setRezultati(noviNiz);
-    if (indeks + 1 < pitanja.length) { setIndeks(indeks + 1); setOdabrano(null); }
-    else await handleZavrsiIspit(noviNiz);
+    if (indeks + 1 < pitanja.length) { 
+      setIndeks(indeks + 1); 
+      setOdabrano(null); 
+    } else {
+      await handleZavrsiIspit(noviNiz);
+    }
   };
 
   const handleZavrsiIspit = async (final = rezultati) => {
@@ -122,31 +125,41 @@ export default function MikroIspitPage() {
     const trajanje = pocetakVrijeme ? Math.floor((Date.now() - pocetakVrijeme) / 1000) : 0;
     
     if (user) {
+      // PROMJENA: Šaljemo nazivKategorije i ukupnoPitanja u strapi.ts -> medals.ts
       const m = await spremiIspitSustav(user, { 
         modulId: `mikro-${kategorijaId}`, 
         nazivKategorije: nazivKategorije,
         ukupnoBodova: ukupno, 
         postotak, 
         vrijemeTrajanja: trajanje, 
-        email: user.email 
+        email: user.email,
+        ukupnoPitanja: pitanja.length // Dodano za izračun "Brzi prst"
       });
-      setNoveMedalje(m);
+      
+      setNoveMedalje(m || []);
+      
+      // Osvježavamo podatke o korisniku kako bi vidjeli i stare i nove medalje
       const uSnap = await getDoc(doc(db, "users", user.uid));
       if (uSnap.exists()) setUserStats(uSnap.data());
     }
-    setIsSaving(false); setZavrseno(true);
+    
+    setIsSaving(false); 
+    setZavrseno(true);
   };
 
   if (loading || isSaving) return (
     <div className="h-screen flex flex-col items-center justify-center bg-white p-6 text-center">
       <Loader2 className="animate-spin text-blue-600 mb-4" size={50} />
-      <h2 className="font-black text-gray-300 uppercase tracking-tighter italic">{isSaving ? "Analiziramo tvoj uspjeh..." : "Priprema..."}</h2>
+      <h2 className="font-black text-gray-300 uppercase tracking-tighter italic">
+        {isSaving ? "Analiziramo tvoj uspjeh..." : "Priprema..."}
+      </h2>
     </div>
   );
 
   if (zavrseno) {
     const postotak = Math.round((rezultati.reduce((a,b)=>a+b.bodovi,0) / (pitanja.reduce((a,b)=>a+(b.Bodovi||1),0) || 1)) * 100);
     const stareMedalje = userStats?.medalje || [];
+    // Filtriramo medalje koje korisnik još nema (nisu u starim niti su upravo dobivene)
     const zakljucane = LISTA_ID_MEDALJA.filter(m => !stareMedalje.includes(m) && !noveMedalje.includes(m));
 
     return (
@@ -157,21 +170,25 @@ export default function MikroIspitPage() {
             {postotak >= 90 ? 'MIKRO ISPIT POLOŽEN!' : 'POKUŠAJTE PONOVNO'}
           </p>
 
+          {/* PRIKAZ NOVIH MEDALJA S ANIMACIJOM */}
           {noveMedalje.length > 0 && (
             <div className="mb-8 md:mb-12 p-6 md:p-8 bg-yellow-50 rounded-[2rem] md:rounded-[3rem] border-4 border-yellow-100">
               <Trophy className="mx-auto text-yellow-500 mb-4" size={32} />
-              <h3 className="text-yellow-700 font-black uppercase text-[10px] md:text-sm mb-6 tracking-widest text-center">Nove Medalje!</h3>
+              <h3 className="text-yellow-700 font-black uppercase text-[10px] md:text-sm mb-6 tracking-widest text-center">Osvojene nove medalje!</h3>
               <div className="flex flex-wrap justify-center gap-4">
                 {noveMedalje.map((m: string) => (
                   <div key={m} className="flex flex-col items-center">
                     <img src={SVE_MEDALJE_PODACI[m]?.src} className="w-16 h-16 md:w-20 md:h-20 animate-bounce" alt={m} />
-                    <span className="font-black text-[8px] text-yellow-800 uppercase mt-2 italic text-center max-w-[70px]">{SVE_MEDALJE_PODACI[m]?.naziv}</span>
+                    <span className="font-black text-[8px] text-yellow-800 uppercase mt-2 italic text-center max-w-[70px]">
+                      {SVE_MEDALJE_PODACI[m]?.naziv}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
+          {/* KOLEKCIJA I ZAKLJUČANE MEDALJE */}
           {[
             { naslov: "Moja Kolekcija", data: stareMedalje, isLocked: false },
             { naslov: "Još možeš osvojiti", data: zakljucane, isLocked: true }
@@ -189,11 +206,14 @@ export default function MikroIspitPage() {
                       />
                       {sec.isLocked && <Lock className="absolute inset-0 m-auto text-gray-400 opacity-40" size={12} />}
                     </div>
+                    {/* TOOLTIP */}
                     <div className="invisible group-hover:visible absolute bottom-full left-0 mb-3 z-[100] w-56 transform transition-all duration-200 opacity-0 group-hover:opacity-100">
                       <div className="bg-gray-900 text-white p-4 rounded-2xl shadow-2xl border border-gray-700 relative">
                         <div className="flex items-center gap-2 mb-1">
                           {sec.isLocked && <Lock size={12} className="text-orange-400" />}
-                          <p className={`font-black uppercase text-[11px] leading-tight ${sec.isLocked ? 'text-orange-400' : 'text-blue-400'}`}>{SVE_MEDALJE_PODACI[m]?.naziv}</p>
+                          <p className={`font-black uppercase text-[11px] leading-tight ${sec.isLocked ? 'text-orange-400' : 'text-blue-400'}`}>
+                            {SVE_MEDALJE_PODACI[m]?.naziv}
+                          </p>
                         </div>
                         <p className="text-[10px] font-medium text-gray-300 italic leading-snug">{SVE_MEDALJE_PODACI[m]?.opis}</p>
                         <div className="absolute top-full left-6 -mt-1 border-8 border-transparent border-t-gray-900"></div>
@@ -240,7 +260,9 @@ export default function MikroIspitPage() {
             </div>
           </div>
 
-          <button onClick={kreniSIspitom} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 md:py-8 rounded-[1.5rem] md:rounded-[2.5rem] font-black text-xl md:text-2xl uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-3"><Play fill="currentColor" size={24} /> ZAPOČNI MIKRO ISPIT</button>
+          <button onClick={kreniSIspitom} className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 md:py-8 rounded-[1.5rem] md:rounded-[2.5rem] font-black text-xl md:text-2xl uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-3">
+            <Play fill="currentColor" size={24} /> ZAPOČNI MIKRO ISPIT
+          </button>
         </div>
       </div>
     );
@@ -250,26 +272,50 @@ export default function MikroIspitPage() {
   return (
     <div className="max-w-3xl mx-auto p-4 min-h-screen flex flex-col justify-center">
       <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] shadow-2xl border relative overflow-hidden">
-        <div className="absolute top-0 left-0 h-2 bg-blue-500 transition-all duration-700" style={{ width: `${((indeks + 1) / pitanja.length) * 100}%` }} />
+        <div className="absolute top-0 left-0 h-2 bg-blue-500 transition-all duration-700" style={{ width: `${((indeks + 1) / (pitanja.length || 1)) * 100}%` }} />
         <div className="flex justify-between items-center mb-6 md:mb-10 text-[10px] md:text-xs font-black text-gray-300 uppercase italic">
           <span className="flex items-center gap-2"><BookOpen size={14} /> {nazivKategorije} • {indeks + 1}/{pitanja.length}</span>
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600"><Clock size={14} /> {formatTime(timeLeft)}</div>
         </div>
-        {p?.Slika_pitanja?.url && <div className="mb-6 rounded-[1.5rem] overflow-hidden bg-gray-50 border"><img src={`${STRAPI_URL}${p.Slika_pitanja.url}`} className="w-full h-auto max-h-64 object-contain mx-auto" alt="Pitanje" /></div>}
-        <ReactMarkdown className="text-xl md:text-3xl font-black text-gray-800 leading-tight italic mb-8">{p?.Tekst_Pitanja}</ReactMarkdown>
+        
+        {p?.Slika_pitanja?.url && (
+          <div className="mb-6 rounded-[1.5rem] overflow-hidden bg-gray-50 border shadow-inner">
+            <img 
+              src={`${STRAPI_URL}${p.Slika_pitanja.url}`} 
+              className="w-full h-auto max-h-64 object-contain mx-auto" 
+              alt="Pitanje" 
+            />
+          </div>
+        )}
+
+        <ReactMarkdown className="text-xl md:text-3xl font-black text-gray-800 leading-tight italic mb-8">
+          {p?.Tekst_Pitanja}
+        </ReactMarkdown>
+
         <div className="grid gap-3">
           {['A', 'B', 'C'].map(s => (
-            <button key={s} onClick={() => setOdabrano(s)} className={`w-full text-left p-4 md:p-6 border-2 rounded-[1.5rem] flex items-center gap-4 transition-all ${odabrano === s ? 'border-blue-600 bg-blue-50' : 'border-gray-50 hover:bg-gray-50'}`}>
+            <button 
+              key={s} 
+              onClick={() => setOdabrano(s)} 
+              className={`w-full text-left p-4 md:p-6 border-2 rounded-[1.5rem] flex items-center gap-4 transition-all ${odabrano === s ? 'border-blue-600 bg-blue-50 shadow-md scale-[1.01]' : 'border-gray-50 hover:bg-gray-50'}`}
+            >
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${odabrano === s ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}>{s}</div>
               <span className={`text-sm md:text-lg font-bold ${odabrano === s ? 'text-blue-900' : 'text-gray-700'}`}>{p?.[`Odgovor_${s}`]}</span>
             </button>
           ))}
         </div>
-        <button onClick={handleSljedece} disabled={!odabrano} className="w-full mt-8 bg-gray-900 text-white py-6 rounded-[1.5rem] font-black uppercase flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20 shadow-xl">
+
+        <button 
+          onClick={handleSljedece} 
+          disabled={!odabrano} 
+          className="w-full mt-8 bg-gray-900 text-white py-6 rounded-[1.5rem] font-black uppercase flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20 shadow-xl"
+        >
           {indeks === pitanja.length - 1 ? 'Završi Mikro Ispit' : 'Sljedeće Pitanje'} <ChevronRight />
         </button>
       </div>
-      <div className="mt-6 flex items-center justify-center gap-2 text-gray-300 font-black text-[9px] md:text-[10px] uppercase tracking-widest italic"><AlertCircle size={12} /> Odgovori su konačni i nije moguć povratak</div>
+      <div className="mt-6 flex items-center justify-center gap-2 text-gray-300 font-black text-[9px] md:text-[10px] uppercase tracking-widest italic">
+        <AlertCircle size={12} /> Odgovori su konačni i nije moguć povratak
+      </div>
     </div>
   );
 }

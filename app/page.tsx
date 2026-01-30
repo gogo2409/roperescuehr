@@ -3,8 +3,10 @@ import React from 'react';
 import ModuleCard from '@/components/ModuleCard';
 import Link from 'next/link';
 import FooterReklame from '@/components/FooterReklame';
+import GlobalStats from '@/components/GlobalStats'; // Uvozimo novu klijentsku komponentu
+import { ArrowRight } from 'lucide-react';
 
-// Prisiljavamo Next.js da uvijek dohvaća svježe podatke
+// Prisiljavamo Next.js da uvijek dohvaća svježe podatke iz Strapija
 export const dynamic = 'force-dynamic';
 
 async function getGlobalSettings() {
@@ -17,7 +19,7 @@ async function getGlobalSettings() {
     const json = await res.json();
     return json.data && json.data.length > 0 ? json.data[0] : null;
   } catch (error) {
-    console.error("Greška pri dohvaćanju:", error);
+    console.error("Greška pri dohvaćanju globalnih postavki:", error);
     return null;
   }
 }
@@ -36,24 +38,23 @@ const HomePage = async () => {
     <>
       <div className="container mx-auto p-4 max-w-7xl min-h-screen"> 
         
-        {/* HERO SEKCIJA - Smanjen py-16 na py-10 i my-12 na my-6 */}
+        {/* HERO SEKCIJA */}
         <section className="mx-auto max-w-5xl">
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 py-10 text-center rounded-xl shadow-lg my-6 border-b-4 border-blue-600/70">
             
-            {/* Logo smanjen na h-24 */}
             <img 
               src={logoUrl} 
               alt="Logo"
               className="h-24 w-auto mx-auto mb-4 object-contain"
             />
 
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-4 px-6">
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-4 px-6 font-medium italic">
               {opisTekst}
             </p>
             
             <div className="mt-6">
               <a href="#moduli">
-                <span className="inline-block bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 cursor-pointer text-base">
+                <span className="inline-block bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 transform hover:scale-105 cursor-pointer text-base uppercase tracking-wider italic">
                   Započnite učenje ↓
                 </span>
               </a>
@@ -61,7 +62,6 @@ const HomePage = async () => {
           </div>
         </section>
         
-        {/* Razmak smanjen na my-8 */}
         <hr className="my-8 dark:border-gray-700" id="moduli" /> 
         
         {/* SEKCIJA: GLAVNI MODULI */}
@@ -78,8 +78,8 @@ const HomePage = async () => {
           <ModuleCard modul="Modul 3" naslov="Sigurnost, Protokoli i Certifikacija" ikonaBroj={3 as 1|2|3|4} link="/modul?id=3" />
         </section>
 
-        {/* SEKCIJA: MODUL 4 (ZA ONE KOJI ŽELE ZNATI VIŠE) */}
-        <div className="mb-24 max-w-5xl mx-auto">
+        {/* SEKCIJA: MODUL 4 (BONUS) */}
+        <div className="mb-20 max-w-5xl mx-auto">
           <div className="max-w-2xl mx-auto">
             <Link href="/modul?id=4">
               <div className="relative group cursor-pointer">
@@ -106,8 +106,8 @@ const HomePage = async () => {
                       </div>
                     </div>
 
-                    <div className="flex-1 text-center md:text-left">
-                      <h4 className="text-2xl font-black text-gray-800 dark:text-gray-100 mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors uppercase italic tracking-tighter">
+                    <div className="flex-1 text-center md:text-left text-black dark:text-white">
+                      <h4 className="text-2xl font-black mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors uppercase italic tracking-tighter">
                         Za one koji žele znati više
                       </h4>
                       <p className="text-gray-600 dark:text-gray-300 mb-4 font-medium italic">
@@ -116,19 +116,21 @@ const HomePage = async () => {
                       
                       <div className="flex items-center justify-center md:justify-start gap-2 text-purple-600 dark:text-purple-400 font-black uppercase text-sm tracking-widest group-hover:gap-4 transition-all italic">
                         <span>Istraži sadržaj</span>
-                        <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
+                        <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </div>
-                  <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-tl from-purple-100 to-transparent dark:from-purple-900/10 rounded-2xl -z-10 transition-opacity group-hover:opacity-50"></div>
                 </div>
               </div>
             </Link>
           </div>
         </div>
+
+        {/* --- STATISTIKA (Učitava se na klijentu da Firebase radi ispravno) --- */}
+        <GlobalStats />
+
       </div>
+      
       <FooterReklame stranica={undefined} />
     </>
   );

@@ -1,8 +1,3 @@
-/**
- * LOKACIJA: components/AuthNavButtons.tsx
- * FIX: Ažurirani uvjeti korištenja i sinkronizacija telefona
- */
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -26,7 +21,8 @@ import {
   User as UserIcon,
   ShoppingCart,
   ClipboardList,
-  Trophy 
+  Trophy,
+  Share2
 } from 'lucide-react';
 import { firebaseAuth, db } from '@/lib/firebase';
 import { syncUserWithStrapi } from '@/lib/strapi';
@@ -100,7 +96,6 @@ const RegistrationModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
         firstName, lastName, email, unit: "", phone: "", createdAt: new Date().toISOString()
       });
 
-      // Sinkronizacija
       await syncUserWithStrapi(userCredential.user, firstName, lastName, "", "");
 
       setMessage({ type: 'success', text: 'Registracija uspješna!' });
@@ -120,20 +115,9 @@ const RegistrationModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
         <Input type="email" placeholder="Email" required value={email} onChange={e => setEmail(e.target.value)} />
         <Input type="password" placeholder="Lozinka" required value={password} onChange={e => setPassword(e.target.value)} />
         
-        {/* NOVI TEKST UVJETA KORIŠTENJA */}
         <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4 max-h-40 overflow-y-auto text-[11px] leading-relaxed text-gray-700 dark:text-gray-400">
-          <p className="mb-2">
-            Prihvaćanjem uvjeta registracije, potvrđujete da razumijete i prihvaćate da ova aplikacija služi isključivo u demonstracijske i edukativne svrhe.
-          </p>
-          <p className="mb-2">
-            Stoga se izričito odričemo bilo kakve odgovornosti za točnost, potpunost ili korisnost bilo koje informacije, usluge ili proizvoda dostupnog putem ove platforme.
-          </p>
-          <p className="mb-2 font-bold text-gray-900 dark:text-gray-200">
-            Koristite na vlastitu odgovornost.
-          </p>
-          <p>
-            Podaci se spremaju u Firebase Firestore. Ne garantiramo njihovu trajnost ili sigurnost u produkcijskom okruženju. Preporučujemo da ne unosite osjetljive osobne podatke.
-          </p>
+          <p className="mb-2">Prihvaćanjem uvjeta registracije, potvrđujete da razumijete i prihvaćate da ova aplikacija služi isključivo u edukativne svrhe.</p>
+          <p className="mb-2 font-bold text-gray-900 dark:text-gray-200">Koristite na vlastitu odgovornost.</p>
         </div>
 
         <label className="flex items-start gap-3 cursor-pointer group">
@@ -144,7 +128,7 @@ const RegistrationModal = ({ isOpen, onClose }: { isOpen: boolean, onClose: () =
             className="mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" 
           />
           <span className="text-xs text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors">
-            Pročitao/la sam i prihvaćam <strong>uvjete korištenja</strong> i razumijem da je ova aplikacija u edukativne svrhe.
+            Pročitao/la sam i prihvaćam <strong>uvjete korištenja</strong>.
           </span>
         </label>
 
@@ -241,6 +225,8 @@ const ProfileModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: () 
         <Input placeholder="Postrojba" value={unit} onChange={e => setUnit(e.target.value)} />
         <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 text-white">Spremi promjene</Button>
       </form>
+
+      {/* NAVIGACIJSKI LINKOVI UNUTAR MODALA */}
       <div className="mt-6 pt-4 border-t dark:border-gray-700 grid grid-cols-1 gap-2">
         <a href="/profil" className="flex items-center justify-center gap-2 w-full bg-green-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-green-700 transition-colors">
           <ClipboardList className="h-4 w-4" /> Rezultati ispita
@@ -248,6 +234,12 @@ const ProfileModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: () 
         <a href="/profil/medalje" className="flex items-center justify-center gap-2 w-full bg-yellow-500 text-white py-3 rounded-lg text-sm font-semibold hover:bg-yellow-600 transition-colors">
           <Trophy className="h-4 w-4" /> Moje medalje
         </a>
+        
+        {/* DODAN LINK ZA POZOVI PRIJATELJE */}
+        <a href="/profil/pozovi-prijatelje" className="flex items-center justify-center gap-2 w-full bg-indigo-500 text-white py-3 rounded-lg text-sm font-semibold hover:bg-indigo-600 transition-colors">
+          <Share2 className="h-4 w-4" /> Pozovi prijatelje
+        </a>
+
         <a href="/profil/narudzbe" className="flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
           <ShoppingCart className="h-4 w-4" /> Moje narudžbe
         </a>
